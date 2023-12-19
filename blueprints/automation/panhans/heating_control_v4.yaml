@@ -47,8 +47,9 @@ blueprint:
   domain: automation
   input:
     input_trvs:
-      name: Thermostats / Valves
-      description: Thermostats to be controlled
+      name: 🔥 Thermostats / Valves
+      description: >
+        Thermostats to be controlled.
       selector:
         entity:
           filter:
@@ -56,48 +57,10 @@ blueprint:
                 - climate
           multiple: true
 
-    input_schedulers:
-      name: Scheduler (optional)
-      description:
-        Scheduler that specifies when the comfort temperature can be set
-        (scheduler state on). Scheduler can be added in the helpers section in your
-        home assistant settings.
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
-                - schedule
-          multiple: true
-
-    input_scheduler_selector:
-      name: Scheduler Selector
-      description: >
-        Define an entity to choose from your schedulers. If you only use one scheduler you can ignore this. If you use more than one scheduler you have multiple possibilities to setup your selection: <br/>
-
-        * toggle (input_boolean) or binary_sensor: If *off* first defined scheduler is active. If *on* second scheduler is activer (other schedulers have no impact).
-
-        * text (input_text), drop down (input_select) or sensor:
-          * The value has to match the friendly name of the selected scheduler partially. Example: If you provide three schedulers called *work*, *holiday/sick*, *guest* you can select the holiday scheduler while setting the selection entity to *sick* or *holiday*. This option is case insensitive.
-          * You also can go with numbers: if you want to choose the first scheduler the selector entity must return the number *1*
-
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - input_boolean
-                - binary_sensor
-                - input_text
-                - input_number
-                - input_select
-          multiple: false
-
     input_temperature_minimum:
-      name: Minimum Temp
-      description:
-        If nobody is at home or the scheduler state is off, the minimum
-        temperature is set.
+      name: ❄️ Minimum Temp
+      description: >
+        The temperature that is set when your heating schedule is not active.
       default: 19
       selector:
         number:
@@ -107,9 +70,11 @@ blueprint:
           mode: slider
           unit_of_measurement: °C
 
+    # C O M F O R T   &   M O D S
     input_temperature_comfort_static:
-      name: Static Comfort Temperature
-      description: Set a static comfort temperature.
+      name: ☀️ Static Comfort Temperature
+      description: >
+        You can set a static comfort temperature here.
       default: 22
       selector:
         number:
@@ -120,8 +85,9 @@ blueprint:
           unit_of_measurement: °C
 
     input_temperature_comfort:
-      name: Comfort temperature (optional)
-      description: If you want to set the comfort temperature in the UI just provide an input number helper.
+      name: 🎚️ Comfort temperature (optional)
+      description: >
+        To control your comfort temperature via automations or the UI, you can specify an input_number entity here.
       default:
       selector:
         entity:
@@ -130,261 +96,8 @@ blueprint:
                 - input_number
           multiple: false
 
-    input_reset_comfort_temperature:
-      name: Reset Comfort Temperature
-      description: If a *scheduler* and an *input_number* for comfort temperature is defined. You can reset it to the value of the *Static Comfort Temperature* when the scheduler changes to *on* next time.
-      default: false
-      selector:
-        boolean: {}
-
-    input_persons:
-      name: Persons (optional)
-      description:
-        If a person is at home and the scheduler state is on, the comfort
-        temperature will be set.
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
-                - person
-          multiple: true
-
-    input_mode_party:
-      name: Party mode (optional)
-      description: Overwrites winter mode and scheduler. If on, heating is activated.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - input_boolean
-                - binary_sensor
-                - timer
-          multiple: false
-
-    input_mode_guest:
-      name: Guest mode (optional)
-      description: Activates the scheduler and ignores if anybody is at home or not.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - input_boolean
-                - binary_sensor
-                - timer
-          multiple: false
-
-    input_windows:
-      name: Windows / Doors (optional)
-      description: If open during airing TRVs will be set to off.
-      default: []
-      selector:
-        entity:
-          filter:
-            - domain:
-                - binary_sensor
-          multiple: true
-
-    input_windows_reaction_time:
-      name: Window / Door Reaction Time
-      description: Duration for which a window or door must be open/closed for the thermostats to close/open.
-      default:
-        hours: 0
-        minutes: 0
-        seconds: 30
-      selector:
-        duration:
-
-    input_mode_winter:
-      name: Winter mode (optional)
-      description: If on scheduled heating is activated, otherwise TRVs stay off.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - input_boolean
-                - binary_sensor
-          multiple: false
-
-    input_presence_sensor:
-      name: Presence Sensor (optional)
-      description: If a presence sensor has been specified, heating is also carried out if the scheduler is off but presence has been detected. This presence sensor only has impact when no scheduler is defined or the active scheduler is off.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - binary_sensor
-                - input_boolean
-          multiple: false
-
-    input_scheduler_presence:
-      name: Presence Sensor Scheduler (optional)
-      description: This optional scheduler specifies when heating is controlled by presence. If this is not specified, presence-based heating is always active.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - schedule
-          multiple: false
-
-    input_presence_reaction_on_time:
-      name: Presence Reaction On Time
-      description: Define how many minutes the presence sensor must be on to turn on heating.
-      default:
-        hours: 0
-        minutes: 5
-        seconds: 0
-      selector:
-        duration:
-
-    input_presence_reaction_off_time:
-      name: Presence Reaction Off Time
-      description:
-        Define how many minutes the presence sensor must be off so the
-        temperature turns to minimum.
-      default:
-        hours: 0
-        minutes: 5
-        seconds: 0
-      selector:
-        duration:
-
-    input_change_comfort_temperature_on_physical_change:
-      name: Physical Comfort Temperature Change (experimental)
-      description: >
-        Enable this if you want to control the comfort temperature with your valves. 
-        A comfort temperature *input_number* has to be defined. Note that the changes have no effect on the minimum temperature. 
-        The temperature for the value range of the *input_number* is also adjusted.
-
-        Note: This feature doesn't work properly since there is a [bug](https://github.com/home-assistant/core/issues/68047) in home assistant.
-      default: false
-      selector:
-        boolean: {}
-
-    input_start_party_timer_on_physical_change:
-      name: Start Party Timer on Physical Comfort Temperature Change
-      description: >
-        If enabled party mode will be started if a timer is given and temperature changed on a TRV device.
-      default: false
-      selector:
-        boolean: {}
-
-    input_temperature_sensor:
-      name: External Temperatur Sensor (optional)
-      description: >
-        Temperature calibration for your TRVs. The following is supported:
-
-          * TRVs must provide calibration number entity (entity_id must contain *calibration* or *offset*)
-          * TADO TRVs
-
-        Note: This is an additional sensor inside your room usually next to your favourite spot.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - sensor
-              device_class:
-                - temperature
-          multiple: false
-
-    input_calibration_delta:
-      name: Calibration Delta
-      description: If the difference between the TRV temperature and the external sensor temperature is greater or less than the calibration delta the TRV calibration will be triggered. The lower the delta the often calibration gets triggered.
-      default: 0.5
-      selector:
-        number:
-          min: 0
-          max: 2
-          step: 0.1
-          mode: slider
-          unit_of_measurement: °C
-
-    input_calibration_rounding_full_values:
-      name: Calibration Full Rounding
-      description: Some integrations offer a calibration step size of e.g. *0.1* or *0.01* so theoretically calibration values of e.g. *2.3* or *3.45* are possible. But some TRVs can handle only full values. Just have a look into your devices. Enable this to force rounding to full values in order to prevent redundant calibration calls.
-      default: false
-      selector:
-        boolean: {}
-
-    input_calibration_generic:
-      name: Generic Calibration
-      description:
-        If your valves don't support calibration or calibration doesn't work properly enable this option. An offset for every valve depending on your external temperature sensor will be calculated and added to your target temperature.
-        Note that the target temperatures of your valves will differ from your minimum or comfort temperature. Also have in mind that the calibration delta has no impact with this option.
-      default: false
-      selector:
-        boolean: {}
-
-    input_calibration_timeout:
-      name: Calibration Timeout
-      description: Define a timeout if you want to decrease calibration calls if temperature changes too much. At least temperature of the external sensor or trv must stay for that duration before calibration gets triggered.
-      default:
-        hours: 0
-        minutes: 1
-        seconds: 0
-      selector:
-        duration:
-
-    input_force_max_temperature:
-      name: Force Max Temperature (optional)
-      description: Set the maximum temperature of all TRVs regardless of any other settings.
-      default:
-      selector:
-        entity:
-          filter:
-            - domain:
-                - input_boolean
-          multiple: false
-
-    input_off_instead_min:
-      name: Off Instead Of Minimum Temperature
-      description: If enabled your climates turn *off* instead of lower temperature when the scheduler is off or no presence is detected.
-      default: false
-      selector:
-        boolean: {}
-
-    input_force_minimum_temperature:
-      name: Force Minimum Temperature
-      description: Activate this option if you have problems with OFF mode. Instead of setting them to off, all TRVs will be set to their individual minimum temperature.
-      default: false
-      selector:
-        boolean: {}
-
-    input_split_service_calls:
-      name: Split Service Calls
-      description: Mode and temperature are set in one service call. Some TRVs have problems by setting it this way. Activate this option to set mode and temperature in separate service calls.
-      default: false
-      selector:
-        boolean: {}
-
-    input_not_heat_but_auto:
-      name: Not Heat But Auto
-      description: If mode *Auto* is the common mode of your valves for default heating instead of mode *Heat*.
-      default: false
-      selector:
-        boolean: {}
-
-    input_service_call_delay:
-      name: Service Call Delay
-      description:
-        Some TRVs have problems with setting mode and temperature. You can try to increase the
-        delay between the service calls. This could fix your problems.
-      default:
-        default:
-        hours: 0
-        minutes: 0
-        seconds: 2
-      selector:
-        duration:
-
     input_time_based_comfort_change:
-      name: Comfort Heating Plan
+      name: 📈 Comfort Heating Plan (optional)
       description: >
         Define you comfort temperature plan. You need to provide an *input_number* for your comfort temperature. Then you can setup a heating plan like this:
 
@@ -401,6 +114,331 @@ blueprint:
       selector:
         object:
       default: "[]"
+
+    # P E R S O N S
+    input_persons:
+      name: 👥 People (optional)
+      description: >
+        You can specify people to make your heating plan more dynamic. If you do not use schedulers or presence sensors, heating is activated as soon as someone is at home.<br/>
+        With schedulers or presence sensors, these are only active when someone is at home.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - person
+          multiple: true
+
+    # S C H E D U L E R
+    input_schedulers:
+      name: ⏲️ Scheduler (optional)
+      description: >
+        A scheduler specifies when heating to comfort temperature should take place. You can create it in the helper section of Home Assistant.<br/>
+        If you have also specified people, someone must also be at home for heating.<br/>
+        You can create as many schedulers as you like. Make sure the names are clear.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - schedule
+          multiple: true
+
+    input_scheduler_selector:
+      name: ☝🏻 Scheduler Selector
+      description: >
+        Define an entity to choose from your schedulers. If you use one scheduler only you can ignore this. If you use more than one scheduler you have multiple possibilities to setup your selection: <br/>
+
+        * toggle (*input_boolean*) or *binary_sensor*: If *off* the first defined scheduler is active. If *on* second scheduler is active. More than 2 schedulers cannot be selected with binary inputs.
+
+        * text (*input_text*), drop down (*input_select*) or sensor:
+          * The value has to match the friendly name of the selected scheduler at least partially. Example: If you provide three schedulers called *work*, *holiday/sick*, *guest* you can select the holiday scheduler while setting the selection entity to *sick*, *holiday* or *holiday/sick*. This option is case insensitive.
+          * You also can go with numbers: if you want to choose the first scheduler the selector entity must return the number *1*. For the 2nd number *2* and so on.
+
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_boolean
+                - binary_sensor
+                - input_text
+                - input_number
+                - input_select
+          multiple: false
+
+    # P R E S E N C E
+    input_presence_sensor:
+      name: 🚶 Presence Sensor (optional)
+      description: >
+        If you specify a presence sensor, heating will take place if it detects presence.<br/>
+        If you have specified people, at least one must also be at home.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - binary_sensor
+                - input_boolean
+          multiple: false
+
+    input_scheduler_presence:
+      name: ⏲️ Presence Sensor Scheduler (optional)
+      description: >
+        The presence scheduler specifies exactly when the presence sensor should be used during the day.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - schedule
+          multiple: false
+
+    input_presence_reaction_on_time:
+      name: ⏳ Presence Reaction On Time
+      description: >
+        Specify the duration for which the presence sensor must detect any presence so that the comfort temperature is set.
+      default:
+        hours: 0
+        minutes: 5
+        seconds: 0
+      selector:
+        duration:
+
+    input_presence_reaction_off_time:
+      name: ⌛ Presence Reaction Off Time
+      description: Specify the duration for which the presence sensor must not detect any presence so that the minimum temperature is set.
+      default:
+        hours: 0
+        minutes: 5
+        seconds: 0
+      selector:
+        duration:
+
+    # M O D E S
+    input_mode_party:
+      name: 🎈 Party mode (optional)
+      description: >
+        If on, all settings are ignored and heating takes place.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_boolean
+                - binary_sensor
+                - timer
+          multiple: false
+
+    input_mode_guest:
+      name: 🤝 Guest mode (optional)
+      description: >
+        If an entity is specified here, it is treated like a person. It's usefull when you're leaving your guests alone in your home and you are not using presence detection.
+          
+          * entity defined -> person defined
+          * enitity is *on* -> simulates person is home
+          * enitity is *off* -> simulates person is away
+
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_boolean
+                - binary_sensor
+                - timer
+          multiple: false
+
+    # W I N D O W   O P E N   D E T E C T I O N
+    input_windows:
+      name: 🪟 Windows / Doors (optional)
+      description: If open during airing TRVs will be set to *off*.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain:
+                - binary_sensor
+          multiple: true
+
+    input_windows_reaction_time:
+      name: ⏳ Window / Door Reaction Time
+      description: Duration for which a window or door must be open/closed for the thermostats to close/open.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 30
+      selector:
+        duration:
+
+    # C A L I B R A T I O N
+    input_temperature_sensor:
+      name: 🌡️ External Temperatur Sensor (optional)
+      description: >
+        Temperature calibration for your TRVs. The following is supported:
+
+          * TRVs must provide calibration number entity (entity_id must contain *calibration* or *offset*)
+          * TADO TRVs
+          * generic calibration
+
+        Note: This is an additional sensor inside your room usually next to your favourite spot.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - sensor
+              device_class:
+                - temperature
+          multiple: false
+
+    input_calibration_generic:
+      name: 🔄 Generic Calibration
+      description: >
+        If your valves don't support calibration or calibration doesn't work properly enable this option. An offset for every valve depending on your external temperature sensor will be calculated and added to your target temperature.
+        Note that the target temperatures of your valves will differ from your minimum or comfort temperature. Also have in mind that the calibration delta has no impact with this option.
+      default: false
+      selector:
+        boolean: {}
+
+    input_calibration_rounding_full_values:
+      name: 〰️ Calibration Full Rounding
+      description: >
+        Some integrations offer a calibration step size of e.g. *0.1* or *0.01* so theoretically calibration values of e.g. *2.3* or *3.45* are possible.<br/>
+        But some TRVs can handle only full values. Just have a look into your devices. Enable this to force rounding to full values in order to prevent redundant calibration calls.
+      default: false
+      selector:
+        boolean: {}
+
+    input_calibration_timeout:
+      name: ⏳ Calibration Timeout
+      description: >
+        Define a timeout if you want to decrease the amount of calibration calls if temperature changes too much. At least temperature of the external sensor or trv must stay for that duration before calibration gets triggered.
+      default:
+        hours: 0
+        minutes: 1
+        seconds: 0
+      selector:
+        duration:
+
+    input_calibration_delta:
+      name: ↔️ Calibration Delta
+      description: >
+        If the difference between the TRV temperature and the external sensor temperature is greater or less than the calibration delta the TRV calibration will be triggered.<br/>
+        The lower the delta the often calibration gets triggered.
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 2
+          step: 0.1
+          mode: slider
+          unit_of_measurement: °C
+
+    # O T H E R    M O D S
+    input_mode_winter:
+      name: ⛄ Winter Mode / Automation Toggle (optional)
+      description: >
+        If *on* the automation is active. If *off* your valves will set to *off* and the automation is going to sleep.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_boolean
+                - binary_sensor
+          multiple: false
+
+    input_force_max_temperature:
+      name: 🥵 Force Max Temperature (optional)
+      description: >
+        Set the maximum temperature of all TRVs regardless of any other settings.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_boolean
+          multiple: false
+
+    # M O D I F I E R S
+
+    input_reset_comfort_temperature:
+      name: ↩️ Reset Comfort Temperature
+      description: >
+        After the end of the scheduler, presence detection or a party, you can automatically reset the comfort temperature to the static comfort temperature.<br/>
+        If the party ends, this happens immediately. With the normal scheduler or presence detection, this is only carried out if the temperature will set to the minimum temperature.
+      default: false
+      selector:
+        boolean: {}
+
+    input_off_instead_min:
+      name: ⚙️ Off Instead Of Minimum Temperature
+      description: >
+        If enabled your climates turn *off* instead of lower temperature to minimum temperature.
+      default: false
+      selector:
+        boolean: {}
+
+    input_force_minimum_temperature:
+      name: ⚙️ Force Minimum Temperature
+      description: >
+        Enable this option if you have problems with mode *off*.<br/>
+        Instead of set them to *off*, all TRVs will be set to their individual minimum temperature.
+      default: false
+      selector:
+        boolean: {}
+
+    input_not_heat_but_auto:
+      name: ⚙️ Not Heat But Auto
+      description: >
+        If mode *Auto* is the common mode of your valves for default heating instead of mode *Heat*.
+      default: false
+      selector:
+        boolean: {}
+
+    input_split_service_calls:
+      name: ⚙️ Split Service Calls
+      description: >
+        Mode and temperature are set in one service call. Some TRVs have problems by setting it this way.<br/>
+        Activate this option to set mode and temperature in separate service calls.
+      default: false
+      selector:
+        boolean: {}
+
+    input_service_call_delay:
+      name: ⚙️ Service Call Delay
+      description: >
+        Some TRVs have problems with setting mode and temperature. You can try to increase the
+        delay between the service calls. This could fix your problems.
+      default:
+        default:
+        hours: 0
+        minutes: 0
+        seconds: 2
+      selector:
+        duration:
+
+    # E X P E R I M E N T A L
+    input_change_comfort_temperature_on_physical_change:
+      name: 🧪 Physical Comfort Temperature Change (experimental)
+      description: >
+        Enable this if you want to control the comfort temperature with your valves. 
+        A comfort temperature *input_number* has to be defined. Note that the changes have no effect on the minimum temperature. 
+        The temperature for the value range of the *input_number* is also adjusted.
+
+        Note: This feature doesn't work properly since there is a [bug](https://github.com/home-assistant/core/issues/68047) in home assistant.
+      default: false
+      selector:
+        boolean: {}
+
+    input_start_party_timer_on_physical_change:
+      name: 🧪 Start Party Timer on Physical Comfort Temperature Change (experimental)
+      description: >
+        If enabled party mode will be started if a timer is given and temperature changed on a TRV device.
+      default: false
+      selector:
+        boolean: {}
 
 ##################################################
 ############### T R I G G E R ####################
