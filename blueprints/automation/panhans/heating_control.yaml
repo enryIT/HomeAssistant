@@ -326,11 +326,13 @@ blueprint:
         If the defined persons are not at home for a longer period of time or the presence sensor has no longer detected any presence, the frost protection temperature can be lowered after a this duration.
         Note: If set to zero frost protection temperature never will be set.
       default:
+        days: 0
         hours: 0
         minutes: 0
         seconds: 0
       selector:
         duration:
+          enable_day: true
 
     # C A L I B R A T I O N
     input_temperature_sensor:
@@ -751,11 +753,11 @@ trigger:
 
         {% if is_person_based %}
           {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
-          {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(days=input_frost_protection_duration.days, hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
         {% endif %}
 
         {% if is_presence_based %}
-          {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(days=input_frost_protection_duration.days, hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
         {% endif %}
 
         {% if is_person_based and is_presence_based %}
@@ -923,11 +925,11 @@ action:
 
           {% if is_person_based %}
             {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
-            {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+            {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(days=input_frost_protection_duration.days, hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
           {% endif %}
 
           {% if is_presence_based %}
-            {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+            {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(days=input_frost_protection_duration.days, hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
           {% endif %}
 
           {% if is_person_based and is_presence_based %}
