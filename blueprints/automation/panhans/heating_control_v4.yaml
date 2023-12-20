@@ -57,8 +57,8 @@ blueprint:
                 - climate
           multiple: true
 
-    input_temperature_minimum:
-      name: ❄️ Minimum Temp
+    input_temperature_minimum_static:
+      name: ❄️ Static Minimum Temp
       description: >
         The temperature that is set when your heating schedule is not active.
       default: 19
@@ -69,6 +69,18 @@ blueprint:
           step: 0.5
           mode: slider
           unit_of_measurement: °C
+      
+    input_temperature_minimum:
+      name: ❄️🎚️ Minimum Temp (optional)
+      description: >
+        To control your minimum temperature via automations or the UI, you can specify an *input_number* entity here.
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
+                - input_number
+          multiple: false
 
     # C O M F O R T   &   M O D S
     input_temperature_comfort_static:
@@ -85,9 +97,9 @@ blueprint:
           unit_of_measurement: °C
 
     input_temperature_comfort:
-      name: 🎚️ Comfort temperature (optional)
+      name: ☀️🎚️ Comfort temperature (optional)
       description: >
-        To control your comfort temperature via automations or the UI, you can specify an input_number entity here.
+        To control your comfort temperature via automations or the UI, you can specify an *input_number* entity here.
       default:
       selector:
         entity:
@@ -452,7 +464,7 @@ trigger_variables:
   input_force_max_temperature: !input input_force_max_temperature
 
   input_temperature_comfort: !input input_temperature_comfort
-  input_temperature_comfort_static: !input input_temperature_comfort_static
+  input_temperature_minimum: !input input_temperature_minimum
   input_time_based_comfort_change: !input input_time_based_comfort_change
 
   # S C H E D U L E R
@@ -493,6 +505,14 @@ trigger:
     id: comfort_change
 
   # T E M P E R A T U R E   C H A N G E S
+  - platform: template
+    value_template: >
+      {% if input_temperature_minimum != none %}
+        {{ now() - states.input_number[input_temperature_minimum.split('.')[1]].last_updated >= timedelta(seconds=2) }}
+      {% else %}
+        {{ false }}
+      {% endif %}
+
   - platform: template
     value_template: >
       {% if input_temperature_comfort != none %}
@@ -676,6 +696,7 @@ variables:
   input_temperature_comfort: !input input_temperature_comfort
   input_temperature_comfort_static: !input input_temperature_comfort_static
   input_temperature_minimum: !input input_temperature_minimum
+  input_temperature_minimum_static: !input input_temperature_minimum_static
 
   # heating scheduler
   input_schedulers: !input input_schedulers
@@ -751,10 +772,17 @@ action:
       state_window: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
 
       state_temperature_comfort: >
-        {% if input_temperature_comfort != none%}
+        {% if input_temperature_comfort != none %}
           {{ states(input_temperature_comfort) }}
         {% else %}
           {{ input_temperature_comfort_static }}
+        {% endif %}
+
+      state_temperature_min: >
+        {% if input_temperature_minimum != none %}
+          {{ states(input_temperature_minimum) }}
+        {% else %}
+          {{ input_temperature_minimum_static }}
         {% endif %}
 
       active_scheduler: >
@@ -826,7 +854,7 @@ action:
           off
         {% endif %}
 
-      temperature: "{{ iif(set_comfort, state_temperature_comfort, input_temperature_minimum) }}"
+      temperature: "{{ iif(set_comfort, state_temperature_comfort, state_temperature_min) }}"
 
       trvs_temp_is_none: "{{ expand(input_trvs) | selectattr('attributes.temperature', 'defined') | selectattr('attributes.temperature', 'eq', none) | map(attribute='entity_id') | list }}"
       trvs_temp_not_set: "{{ expand(input_trvs) | selectattr('attributes.temperature', 'defined') | rejectattr('attributes.temperature', 'eq', float(temperature)) | map(attribute='entity_id') | list }}"
