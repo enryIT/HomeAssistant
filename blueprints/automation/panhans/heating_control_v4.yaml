@@ -24,12 +24,35 @@ blueprint:
 
     ## New in version 4
 
-    - time based comfort temperature plan
+    ✅ Time Based Comfort Temperature Heating Plan
+
+    ✅ switch from number selectors to duration selectors to make timeouts ect. more flexible
+
+    ✅ generic TRV calibration
+
+    ✅ multiple schedulers
+
+    ✅ not mode heat but auto
+
+    ✅ variable (*input_number*) minimum temperature
+
+    ✅ frost protection temp if people not home or presence sensor wasn't on for specific duration
+
+    ❌ make use of HA's proximity integration
+
+    ❌ custom actions when switching between heat and min
+
+    ❌ possibility to pause calibration
+
+    ❌ customizable durations for people leaving / entering home
+
+    ❌ weather or temperature sensor for winter mode
+
 
 
     ## Additional Information
 
-    **Version**: 4.0_alpha5
+    **Version**: 4.0_alpha6
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -69,7 +92,7 @@ blueprint:
           step: 0.5
           mode: slider
           unit_of_measurement: °C
-      
+
     input_temperature_minimum:
       name: ❄️🎚️ Minimum Temp (optional)
       description: >
@@ -283,6 +306,32 @@ blueprint:
       selector:
         duration:
 
+    # F R O S T   P R O T E C T I O N
+    input_frost_protection_temp:
+      name: 🧊 Frost Protection Temperature
+      description: >
+        You can set the frost protection temperature here.
+      default: 5
+      selector:
+        number:
+          min: 5.0
+          max: 17.0
+          step: 0.5
+          mode: slider
+          unit_of_measurement: °C
+
+    input_frost_protection_duration:
+      name: 🧊 Frost Protection Fallback Duration
+      description: >
+        If the defined persons are not at home for a longer period of time or the presence sensor has no longer detected any presence, the frost protection temperature can be lowered after a this duration.
+        Note: If set to zero frost protection temperature never will be set.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 0
+      selector:
+        duration:
+
     # C A L I B R A T I O N
     input_temperature_sensor:
       name: 🌡️ External Temperatur Sensor (optional)
@@ -478,6 +527,8 @@ trigger_variables:
   input_persons: !input input_persons
   input_presence_sensor: !input input_presence_sensor
   input_calibration_timeout: !input input_calibration_timeout
+
+  input_frost_protection_duration: !input input_frost_protection_duration
 
 trigger:
   # S Y S T E M   T R I G G E R S
@@ -685,6 +736,35 @@ trigger:
     id: "comfort_changed_by_time"
     value_template: "{{ now().strftime('%H:%M') in (input_time_based_comfort_change | map(attribute='time') | list) }}"
 
+  # F R O S T   P R O T E C T I O N
+  - platform: template
+    value_template: >
+      {% set is_frost_protection_configured = input_frost_protection_duration.hours | int > 0 or input_frost_protection_duration.minutes | int > 0 or input_frost_protection_duration.seconds | int > 0 %}
+      {% set is_person_based = input_mode_guest != none or input_persons | count > 0 %}
+      {% set is_presence_based = input_presence_sensor != none %}
+
+      {% if is_frost_protection_configured == false or ( is_person_based == false and is_presence_based == false ) %}
+        {{ false }}
+      {% else %}
+        {% set person_fp = false %}
+        {% set presence_fp = false %}
+
+        {% if is_person_based %}
+          {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
+          {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+        {% endif %}
+
+        {% if is_presence_based %}
+          {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+        {% endif %}
+
+        {% if is_person_based and is_presence_based %}
+          {{ person_fp and presence_fp }}
+        {% else %}
+          {{ iif(is_person_based, person_fp, presence_fp) }}
+        {% endif %}
+      {% endif %}
+
 ##################################################
 ############### V A R I A B L E S ################
 ##################################################
@@ -697,6 +777,10 @@ variables:
   input_temperature_comfort_static: !input input_temperature_comfort_static
   input_temperature_minimum: !input input_temperature_minimum
   input_temperature_minimum_static: !input input_temperature_minimum_static
+
+  #frost protection
+  input_frost_protection_temp: !input input_frost_protection_temp
+  input_frost_protection_duration: !input input_frost_protection_duration
 
   # heating scheduler
   input_schedulers: !input input_schedulers
@@ -778,13 +862,6 @@ action:
           {{ input_temperature_comfort_static }}
         {% endif %}
 
-      state_temperature_min: >
-        {% if input_temperature_minimum != none %}
-          {{ states(input_temperature_minimum) }}
-        {% else %}
-          {{ input_temperature_minimum_static }}
-        {% endif %}
-
       active_scheduler: >
         {% set selected_scheduler = none %}
 
@@ -833,6 +910,44 @@ action:
       is_scheduled_heating_on: >
         {{ iif(is_person_based, state_scheduler and is_anybody_home, state_scheduler) }}
 
+      is_frost_protection: >
+        {% set is_frost_protection_configured = input_frost_protection_duration.hours | int > 0 or input_frost_protection_duration.minutes | int > 0 or input_frost_protection_duration.seconds | int > 0 %}
+        {% set is_person_based = input_mode_guest != none or input_persons | count > 0 %}
+        {% set is_presence_based = input_presence_sensor != none %}
+
+        {% if is_frost_protection_configured == false or ( is_person_based == false and is_presence_based == false ) %}
+          {{ false }}
+        {% else %}
+          {% set person_fp = false %}
+          {% set presence_fp = false %}
+
+          {% if is_person_based %}
+            {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
+            {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% endif %}
+
+          {% if is_presence_based %}
+            {% set presence_fp = (now() - states.sensor[input_presence_sensor.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% endif %}
+
+          {% if is_person_based and is_presence_based %}
+            {{ person_fp and presence_fp }}
+          {% else %}
+            {{ iif(is_person_based, person_fp, presence_fp) }}
+          {% endif %}
+        {% endif %}
+
+      state_temperature_min: >
+        {% if is_frost_protection %}
+          {{ input_frost_protection_temp }}
+        {% else %}
+          {% if input_temperature_minimum != none %}
+            {{ states(input_temperature_minimum) }}
+          {% else %}
+            {{ input_temperature_minimum_static }}
+          {% endif %}
+        {% endif %}
+
       # T R V - V A L U E S
       set_comfort: >
         {% if state_mode_party == true %}
@@ -869,6 +984,7 @@ action:
         - mode: {{ mode }} {{" \n "}}
         - temperature: {{ temperature }} {{" \n "}}
         - set_comfort: {{ set_comfort }} {{" \n "}}
+        - is_frost_protection: {{ is_frost_protection }} {{" \n "}}
         - is_person_based: {{ is_person_based }} {{ " \n " }}
         - is_anybody_home: {{ is_anybody_home }} {{ " \n " }}
         - is_presence_sensor_defined: {{ is_presence_sensor_defined }} {{ " \n " }}
