@@ -560,14 +560,6 @@ trigger:
       seconds: 5
     id: comfort_change
 
-  # S T A T E   T R I G G E R S
-  - platform: state
-    entity_id: !input input_trvs
-    attribute: temperature
-    for:
-      seconds: 5
-    id: comfort_change
-
   - platform: state
     entity_id: !input input_trvs
     attribute: current_temperature
