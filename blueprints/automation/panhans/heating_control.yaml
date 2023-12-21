@@ -54,7 +54,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_alpha7
+    **Version**: 4.0_alpha8
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -328,6 +328,7 @@ blueprint:
         If the defined persons are not at home for a longer period of time or the presence sensor has no longer detected any presence, the frost protection temperature can be lowered after a this duration.
         Note: If set to zero frost protection temperature never will be set.
       default:
+        days: 0
         hours: 0
         minutes: 0
         seconds: 0
@@ -759,6 +760,7 @@ trigger:
   - platform: template
     value_template: >
       {% set is_frost_protection_configured = input_frost_protection_duration.hours | int > 0 or input_frost_protection_duration.minutes | int > 0 or input_frost_protection_duration.seconds | int > 0 %}
+      {% set is_frost_protection_configured = iif(is_frost_protection_configured,is_frost_protection_configured,days in input_frost_protection_duration) %}
       {% set is_person_based = input_persons | count > 0 %}
       {% set is_presence_based = input_presence_sensor != none %}
 
@@ -768,13 +770,15 @@ trigger:
         {% set person_fp = false %}
         {% set presence_fp = false %}
 
+        {% set delta = timedelta(**input_frost_protection_duration)%}
+
         {% if is_person_based %}
           {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
-          {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= delta %}
         {% endif %}
 
         {% if is_presence_based %}
-          {% set presence_fp = (now() - ([input_presence_sensor] | expand | map(attribute='last_changed') | first)) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+          {% set presence_fp = (now() - ([input_presence_sensor] | expand | map(attribute='last_changed') | first)) >= delta %}
         {% endif %}
 
         {% if is_person_based and is_presence_based %}
@@ -934,6 +938,7 @@ action:
 
       is_frost_protection: >
         {% set is_frost_protection_configured = input_frost_protection_duration.hours | int > 0 or input_frost_protection_duration.minutes | int > 0 or input_frost_protection_duration.seconds | int > 0 %}
+        {% set is_frost_protection_configured = iif(is_frost_protection_configured,is_frost_protection_configured,days in input_frost_protection_duration) %}
         {% set is_person_based = input_persons | count > 0 %}
         {% set is_presence_based = input_presence_sensor != none %}
 
@@ -943,13 +948,15 @@ action:
           {% set person_fp = false %}
           {% set presence_fp = false %}
 
+          {% set delta = timedelta(**input_frost_protection_duration)%}
+
           {% if is_person_based %}
             {% set last_person_leaving = input_persons | expand | sort(attribute = 'last_changed', reverse=true) | map(attribute='entity_id') | first %}
-            {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+            {% set person_fp = (now() - states.person[last_person_leaving.split('.')[1]].last_changed) >= delta %}
           {% endif %}
 
           {% if is_presence_based %}
-            {% set presence_fp = (now() - ([input_presence_sensor] | expand | map(attribute='last_changed') | first)) >= timedelta(hours=input_frost_protection_duration.hours, minutes=input_frost_protection_duration.minutes, seconds=input_frost_protection_duration.seconds) %}
+            {% set presence_fp = (now() - ([input_presence_sensor] | expand | map(attribute='last_changed') | first)) >= delta %}
           {% endif %}
 
           {% if is_person_based and is_presence_based %}
@@ -1019,7 +1026,8 @@ action:
         - is_scheduled_heating_on: {{ is_scheduled_heating_on }} {{ " \n " }}
         - valves_off_mode: {{ valves_off_mode }} {{ " \n " }}
         - valves_without_off_mode: {{ valves_without_off_mode }} {{ " \n " }}
-        - valves_tado: {{ valves_tado }}
+        - valves_tado: {{ valves_tado }} {{ " \n " }}
+        - input_frost_protection_duration: {{ input_frost_protection_duration }}
       level: debug
       logger: blueprints.panhans.heatingcontrol
 
