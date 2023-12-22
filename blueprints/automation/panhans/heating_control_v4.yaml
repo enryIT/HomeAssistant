@@ -40,9 +40,9 @@ blueprint:
 
     ✅ aggressive mode
 
+    ✅ custom actions when switching between heat and min
+    
     ❌ make use of HA's proximity integration
-
-    ❌ custom actions when switching between heat and min
 
     ❌ possibility to pause calibration
 
@@ -54,7 +54,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_alpha8
+    **Version**: 4.0_alpha9
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -486,12 +486,21 @@ blueprint:
         Some TRVs have problems with setting mode and temperature. You can try to increase the
         delay between the service calls. This could fix your problems.
       default:
-        default:
         hours: 0
         minutes: 0
         seconds: 2
       selector:
         duration:
+
+    # C U S T O M   A C T I O N
+    input_custom_action:
+      name: 🎬 Custom Action
+      description: >
+        This custom action gets executed with every temperature / mode change except calibration. If you want to control other devices just check states before doing a service call.
+        Use the variable *is_heating* in your conditions. *True* means heating is active.
+      default:
+      selector:
+        action:
 
     # E X P E R I M E N T A L
     input_change_comfort_temperature_on_physical_change:
@@ -826,6 +835,7 @@ variables:
   input_calibration_generic: !input input_calibration_generic
   input_not_heat_but_auto: !input input_not_heat_but_auto
   input_aggressive_mode: !input input_aggressive_mode
+  input_custom_action: !input input_custom_action
 
   # V A L V E   G R O U P S
   valves: "{{ expand(input_trvs) | map(attribute='entity_id') | list }}"
@@ -991,6 +1001,8 @@ action:
         {% endif %}
 
       temperature: "{{ iif(set_comfort, state_temperature_comfort, state_temperature_min) }}"
+
+      is_heating: "{{ set_comfort and mode != 'off' }}"
 
       trvs_temp_is_none: "{{ expand(input_trvs) | selectattr('attributes.temperature', 'defined') | selectattr('attributes.temperature', 'eq', none) | map(attribute='entity_id') | list }}"
       trvs_temp_not_set: "{{ expand(input_trvs) | selectattr('attributes.temperature', 'defined') | rejectattr('attributes.temperature', 'eq', float(temperature)) | map(attribute='entity_id') | list }}"
@@ -1454,6 +1466,9 @@ action:
                             hours: "{{ input_service_call_delay.hours }}"
                             minutes: "{{ input_service_call_delay.minutes }}"
                             seconds: "{{ input_service_call_delay.seconds }}"
+
+                    - variables:
+                        temperature: "{{ new_temperature }}"
             else:
               - if:
                   - condition: template
@@ -1480,4 +1495,11 @@ action:
                       hours: "{{ input_service_call_delay.hours }}"
                       minutes: "{{ input_service_call_delay.minutes }}"
                       seconds: "{{ input_service_call_delay.seconds }}"
+
+          # variables: mode, temperature, set_comfort
+          - if:
+              - condition: template
+                value_template: "{{ input_custom_action != none }}"
+            then: !input "input_custom_action"
+
 mode: queued
