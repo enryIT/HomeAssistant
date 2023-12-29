@@ -43,18 +43,17 @@ blueprint:
     ✅ custom actions when switching between heat and min
     
     ✅ customizable durations for people leaving / entering home
+
+    ✅ weather or temperature sensor for winter mode
  
     ❌ make use of HA's proximity integration
 
     ❌ possibility to pause calibration
 
-    ❌ weather or temperature sensor for winter mode
-
-
 
     ## Additional Information
 
-    **Version**: 4.0_alpha10
+    **Version**: 4.0_alpha11
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -422,7 +421,7 @@ blueprint:
           mode: slider
           unit_of_measurement: °C
 
-    # O T H E R    M O D S
+    # W I N T E R  M O D E
     input_mode_winter:
       name: ⛄ Winter Mode / Automation Toggle (optional)
       description: >
@@ -462,6 +461,8 @@ blueprint:
           mode: slider
           unit_of_measurement: °C
 
+    # M O D I F I E R S
+
     input_force_max_temperature:
       name: 🥵 Force Max Temperature (optional)
       description: >
@@ -473,8 +474,6 @@ blueprint:
             - domain:
                 - input_boolean
           multiple: false
-
-    # M O D I F I E R S
 
     input_reset_comfort_temperature:
       name: ↩️ Reset Comfort Temperature
