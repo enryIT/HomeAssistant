@@ -427,6 +427,14 @@ blueprint:
       name: ⛄ Winter Mode / Automation Toggle (optional)
       description: >
         If *on* the automation is active. If *off* your valves will set to *off* and the automation is going to sleep.
+        You can set this up with:
+        
+          * input boolean
+          * binary sensor
+          * weather entity
+          * temperature entity
+
+        Use the lower slider to set the threshold value for the outdoor temperature at which the automation should become active.
       default:
       selector:
         entity:
@@ -434,7 +442,25 @@ blueprint:
             - domain:
                 - input_boolean
                 - binary_sensor
+                - weather
+            - domain:
+                - sensor
+              device_class: temperature
           multiple: false
+
+    input_mode_winter_threshold:
+      name: 🌨️ Winter Mode Threshold
+      description: >
+        If you use a temperature sensor or a weather entity for wintermode just set the temperature threshold here.
+        If temperature is lower the automation will be active.
+      default: 15
+      selector:
+        number:
+          min: 5
+          max: 20
+          step: 1
+          mode: slider
+          unit_of_measurement: °C
 
     input_force_max_temperature:
       name: 🥵 Force Max Temperature (optional)
@@ -571,6 +597,7 @@ trigger_variables:
   input_persons: !input input_persons
   input_presence_sensor: !input input_presence_sensor
   input_calibration_timeout: !input input_calibration_timeout
+  input_mode_winter_threshold: !input input_mode_winter_threshold
 
   input_frost_protection_duration: !input input_frost_protection_duration
 
@@ -692,12 +719,36 @@ trigger:
 
   # M O D E   -   W I N T E R
   - platform: template
-    value_template: "{{ input_mode_winter != none and is_state(input_mode_winter, 'on') }}"
+    value_template: >
+      {% if input_mode_winter != none %}
+        {% set state = states(input_mode_winter) %}
+
+        {% if state in ['on','off'] %}
+          {{ state == 'on' }}
+        {% else %}
+          {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
+          {{ state | int < input_mode_winter_threshold | int }}
+        {% endif %}
+        {% else %}
+          {{ false }}
+      {% endif %}
     for:
       seconds: 2
 
   - platform: template
-    value_template: "{{ input_mode_winter != none and is_state(input_mode_winter, 'off') }}"
+    value_template: >
+      {% if input_mode_winter != none %}
+        {% set state = states(input_mode_winter) %}
+
+        {% if state in ['on','off'] %}
+          {{ state == 'off' }}
+        {% else %}
+          {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
+          {{ state | int >= input_mode_winter_threshold | int }}
+        {% endif %}
+      {% else %}
+        {{ false }}
+      {% endif %}
     for:
       seconds: 2
 
@@ -899,7 +950,19 @@ action:
       # S T A T E S
       state_mode_party: "{{ input_mode_party != none and states(input_mode_party) in ['on','active'] }}"
       state_mode_guest: "{{ input_mode_guest != none and states(input_mode_guest) in ['on','active'] }}"
-      state_mode_winter: "{{ input_mode_winter == none or (input_mode_winter != none and is_state(input_mode_winter, 'on')) }}"
+      state_mode_winter: >
+        {% if input_mode_winter != none %}
+          {% set state = states(input_mode_winter) %}
+
+          {% if state in ['on','off'] %}
+            {{ state == 'on' }}
+          {% else %}
+            {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
+            {{ state | int < input_mode_winter_threshold | int }}
+          {% endif %}
+        {% else %}
+          {{ true }}
+        {% endif %}
       state_force_max_temperature: "{{ input_force_max_temperature != none and is_state(input_force_max_temperature, 'on') }}"
       state_window: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
 
