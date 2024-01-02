@@ -430,7 +430,7 @@ blueprint:
 
           * input boolean
           * binary sensor
-
+      default:
       selector:
         entity:
           filter:
