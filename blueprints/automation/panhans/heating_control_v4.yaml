@@ -41,11 +41,11 @@ blueprint:
     ✅ aggressive mode
 
     ✅ custom actions when switching between heat and min
-    
+
     ✅ customizable durations for people leaving / entering home
 
     ✅ weather or temperature sensor for winter mode
- 
+
     ❌ make use of HA's proximity integration
 
     ❌ possibility to pause calibration
@@ -359,7 +359,7 @@ blueprint:
 
     # C A L I B R A T I O N
     input_temperature_sensor:
-      name: 🌡️ External Temperatur Sensor (optional)
+      name: 🌡️ Temperatur Calibration Sensor (optional)
       description: >
         Temperature calibration for your TRVs. The following is supported:
 
@@ -427,31 +427,43 @@ blueprint:
       description: >
         If *on* the automation is active. If *off* your valves will set to *off* and the automation is going to sleep.
         You can set this up with:
-        
+
           * input boolean
           * binary sensor
-          * weather entity
-          * temperature entity
 
-        Use the lower slider to set the threshold value for the outdoor temperature at which the automation should become active.
-      default:
       selector:
         entity:
           filter:
             - domain:
                 - input_boolean
                 - binary_sensor
+          multiple: false
+
+    input_mode_outside_temperature:
+      name: 🌤️ Outside Temperature Sensor
+      description: >
+        You can control the switching on and off of your thermostats via the outside temperature. 
+        To do this, select a temperature sensor or a weather entity and adjust the threshold below.
+
+          * weather entity
+          * temperature entity
+
+      default:
+      selector:
+        entity:
+          filter:
+            - domain:
                 - weather
             - domain:
                 - sensor
               device_class: temperature
           multiple: false
 
-    input_mode_winter_threshold:
-      name: 🌨️ Winter Mode Threshold
+    input_mode_outside_temperature_threshold:
+      name: 🎚️ Outside Temperature Threshold
       description: >
-        If you use a temperature sensor or a weather entity for wintermode just set the temperature threshold here.
-        If temperature is lower the automation will be active.
+        If you'd select a temperature sensor or a weather entity for controlling heating you can adjust the temperature threshold here.
+        If the outside temperature falls below the threshold value, heating is activated.
       default: 15
       selector:
         number:
@@ -596,7 +608,9 @@ trigger_variables:
   input_persons: !input input_persons
   input_presence_sensor: !input input_presence_sensor
   input_calibration_timeout: !input input_calibration_timeout
-  input_mode_winter_threshold: !input input_mode_winter_threshold
+
+  input_mode_outside_temperature: !input input_mode_outside_temperature
+  input_mode_outside_temperature_threshold: !input input_mode_outside_temperature_threshold
 
   input_frost_protection_duration: !input input_frost_protection_duration
 
@@ -720,16 +734,7 @@ trigger:
   - platform: template
     value_template: >
       {% if input_mode_winter != none %}
-        {% set state = states(input_mode_winter) %}
-
-        {% if state in ['on','off'] %}
-          {{ state == 'on' }}
-        {% else %}
-          {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
-          {{ state | int < input_mode_winter_threshold | int }}
-        {% endif %}
-        {% else %}
-          {{ false }}
+        {{ states(input_mode_winter) == 'on' }}
       {% endif %}
     for:
       seconds: 2
@@ -737,16 +742,28 @@ trigger:
   - platform: template
     value_template: >
       {% if input_mode_winter != none %}
-        {% set state = states(input_mode_winter) %}
+        {{ states(input_mode_winter) == 'off' }}
+      {% endif %}
+    for:
+      seconds: 2
 
-        {% if state in ['on','off'] %}
-          {{ state == 'off' }}
-        {% else %}
-          {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
-          {{ state | int >= input_mode_winter_threshold | int }}
-        {% endif %}
-      {% else %}
-        {{ false }}
+  # O U T S I D E   T E M P E R A T U R E
+  - platform: template
+    value_template: >
+      {% if input_mode_outside_temperature != none %}
+        {% set state = states(input_mode_outside_temperature) %}
+        {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
+        {{ state | int <= input_mode_outside_temperature_threshold | int }}
+      {% endif %}
+    for:
+      seconds: 2
+
+  - platform: template
+    value_template: >
+      {% if input_mode_outside_temperature != none %}
+        {% set state = states(input_mode_outside_temperature) %}
+        {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
+        {{ state | int > input_mode_outside_temperature_threshold | int }}
       {% endif %}
     for:
       seconds: 2
@@ -885,6 +902,9 @@ variables:
   input_windows: !input input_windows
 
   input_mode_winter: !input input_mode_winter
+  input_mode_outside_temperature: !input input_mode_outside_temperature
+  input_mode_outside_temperature_threshold: !input input_mode_outside_temperature_threshold
+
   input_mode_party: !input input_mode_party
   input_mode_guest: !input input_mode_guest
   input_force_max_temperature: !input input_force_max_temperature
@@ -949,19 +969,23 @@ action:
       # S T A T E S
       state_mode_party: "{{ input_mode_party != none and states(input_mode_party) in ['on','active'] }}"
       state_mode_guest: "{{ input_mode_guest != none and states(input_mode_guest) in ['on','active'] }}"
+
       state_mode_winter: >
         {% if input_mode_winter != none %}
-          {% set state = states(input_mode_winter) %}
-
-          {% if state in ['on','off'] %}
-            {{ state == 'on' }}
-          {% else %}
-            {% set state = iif(is_number(state) == true, state, state_attr(input_mode_winter,'temperature'))%}
-            {{ state | int < input_mode_winter_threshold | int }}
-          {% endif %}
+          {{ states(input_mode_winter) == 'on' }}
         {% else %}
           {{ true }}
         {% endif %}
+
+      state_outside_temp: >
+        {% if input_mode_outside_temperature != none %}
+          {% set state = states(input_mode_outside_temperature) %}
+          {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
+          {{ state | int <= input_mode_outside_temperature_threshold | int }}
+        {% else %}
+          {{ true }}
+        {% endif %}
+
       state_force_max_temperature: "{{ input_force_max_temperature != none and is_state(input_force_max_temperature, 'on') }}"
       state_window: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
 
@@ -1074,7 +1098,7 @@ action:
       mode: >
         {% if state_force_max_temperature == true %}
           {{ 'heat' }}
-        {% elif state_mode_winter == false or state_window == true %}
+        {% elif state_mode_winter == false or state_outside_temp == false or state_window == true %}
           {{ 'off' }}
         {% elif set_comfort == false %}
           {{ iif(input_off_instead_min == true, 'off', 'heat') }}
