@@ -53,7 +53,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_alpha11
+    **Version**: 4.0_alpha12
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1072,14 +1072,14 @@ action:
         {% endif %}
 
       mode: >
-        {% if ((state_mode_winter == true or state_mode_party == true) and state_window == false) or state_force_max_temperature == true %}
-          {% if input_off_instead_min == true and set_comfort == false %}
-            off
-          {% else %}
-            {{ iif(input_not_heat_but_auto,'auto','heat') }}
-          {% endif %}
-        {% else %}
-          off
+        {% if state_force_max_temperature == true %}
+          {{ 'heat' }}
+        {% elif state_mode_winter == false or state_window == true %}
+          {{ 'off' }}
+        {% elif set_comfort == false %}
+          {{ iif(input_off_instead_min == true, 'off', 'heat') }}
+        {% elif set_comfort == true %}
+          {{ iif(input_not_heat_but_auto,'auto','heat') }}
         {% endif %}
 
       temperature: "{{ iif(set_comfort, state_temperature_comfort, state_temperature_min) }}"
