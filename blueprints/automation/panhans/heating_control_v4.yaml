@@ -1144,7 +1144,7 @@ action:
   # ----------------------------------------------------------------------------------------------------------------------------------------------------------
   # A C T I O N S
   - choose:
-      # MANUAL COMFORT CHANGE -------------------------------------------------------------------------------------------------------------
+      # 1 MANUAL COMFORT CHANGE -------------------------------------------------------------------------------------------------------------
       - conditions:
           - condition: template
             value_template: >
@@ -1240,7 +1240,7 @@ action:
               minutes: "{{ input_service_call_delay.minutes }}"
               seconds: "{{ input_service_call_delay.seconds }}"
 
-      # CALIBRATION -------------------------------------------------------------------------------------------------------------
+      # 2 CALIBRATION -------------------------------------------------------------------------------------------------------------
       - conditions:
           - condition: or
             conditions:
@@ -1328,7 +1328,7 @@ action:
                           full_rounding: "{{ input_calibration_rounding_full_values }}"
 
                     - condition: template
-                      value_template: "{{ is_number(step_r) == true and is_number(min_calibration_value_r) and is_number(max_calibration_value_r) == true }}"
+                      value_template: "{{ is_number(offset_new) and is_number(step_r) == true and is_number(min_calibration_value_r) and is_number(max_calibration_value_r) == true }}"
 
                     - condition: template
                       value_template: "{{ (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) }}"
@@ -1342,7 +1342,7 @@ action:
 
                     - service: number.set_value
                       data:
-                        value: "{{ float(offset_new) }}"
+                        value: "{{ offset_new }}"
                       target:
                         entity_id: "{{ calibration_entity }}"
 
@@ -1368,7 +1368,7 @@ action:
                     minutes: "{{ input_service_call_delay.minutes }}"
                     seconds: "{{ input_service_call_delay.seconds }}"
 
-      # AUTO RESET COMFORT TEMP
+      # 3 AUTO RESET COMFORT TEMP
       - conditions:
           - condition: template
             value_template: "{{  input_temperature_comfort != none and float(states(input_temperature_comfort)) != float(input_temperature_comfort_static) }}"
@@ -1381,7 +1381,7 @@ action:
             target:
               entity_id: !input input_temperature_comfort
 
-    # SET MODE & TEMPERRATURE -------------------------------------------------------------------------------------------------------------
+    # 4 SET MODE & TEMPERRATURE -------------------------------------------------------------------------------------------------------------
     default:
       - if:
           - condition: template
