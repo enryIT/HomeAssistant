@@ -53,7 +53,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta1
+    **Version**: 4.0_beta2
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -221,6 +221,7 @@ blueprint:
       selector:
         number:
           min: 0
+          max: 999999999
           step: 1
           mode: box
 
@@ -1210,7 +1211,7 @@ action:
 
       mode: >
         {% if state_force_max_temperature == true %}
-          {{ 'heat' }}
+          {{ iif(input_off_instead_min == true, 'off', 'heat') }}
         {% elif state_mode_winter == false or state_outside_temp == false or state_window == true %}
           {{ 'off' }}
         {% elif set_comfort == false %}
@@ -1364,7 +1365,7 @@ action:
           - condition: template
             value_template: "{{ input_calibration_generic == false }}"
           - condition: template
-            value_template: "{{ mode == 'heat' }}"
+            value_template: "{{ mode != 'off' }}"
 
         sequence:
           - repeat:
