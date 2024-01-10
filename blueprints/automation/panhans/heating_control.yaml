@@ -132,7 +132,7 @@ blueprint:
                 - input_number
           multiple: false
 
-    input_time_based_comfort_change:
+    input_time_based_temperature_change_valve_target:
       name: 📈 Comfort Heating Plan (optional)
       description: >
         Define you comfort temperature plan. You need to provide an *input_number* for your comfort temperature. Then you can setup a heating plan like this:
@@ -643,7 +643,7 @@ trigger_variables:
 
   input_temperature_comfort: !input input_temperature_comfort
   input_temperature_minimum: !input input_temperature_minimum
-  input_time_based_comfort_change: !input input_time_based_comfort_change
+  input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
 
   # S C H E D U L E R
   input_schedulers: !input input_schedulers
@@ -681,14 +681,7 @@ trigger:
     attribute: temperature
     for:
       seconds: 5
-    id: comfort_change
-
-  - platform: state
-    entity_id: !input input_trvs
-    attribute: current_temperature
-    for:
-      seconds: 5
-    id: valve_current_temp_change
+    id: temperature_change_valve_target
 
   # T E M P E R A T U R E   C H A N G E S
   - platform: template
@@ -698,6 +691,7 @@ trigger:
       {% else %}
         {{ false }}
       {% endif %}
+    id: temperature_change_minimum
 
   - platform: template
     value_template: >
@@ -706,9 +700,11 @@ trigger:
       {% else %}
         {{ false }}
       {% endif %}
+    id: temperature_change_comfort
 
   # S C H E D U L E R   O N / O F F
   - platform: template
+    id: scheduler_on
     value_template: >
       {% set trigger_state = 'on' %}
       {% set selected_scheduler = '' %}
@@ -736,7 +732,7 @@ trigger:
       {{ iif(selected_scheduler != '', is_state(selected_scheduler, trigger_state), false) }}
 
   - platform: template
-    id: scheduler-off
+    id: scheduler_off
     value_template: >
       {% set trigger_state = 'off' %}
       {% set selected_scheduler = '' %}
@@ -767,14 +763,16 @@ trigger:
   - platform: template
     value_template: "{{ expand(input_persons) | selectattr('state', 'eq', 'home') | list | count > 0 }}"
     for: !input input_people_entering_home_duration
+    id: person_on
 
   - platform: template
     value_template: "{{ expand(input_persons) | selectattr('state', 'eq', 'home') | list | count == 0 }}"
-    id: person-presence-off
+    id: person_off
     for: !input input_people_leaving_home_duration
 
   # P R O X I M I T Y
   - platform: template
+    id: person_proximity_on
     value_template: >
       {% set arrived = expand(input_proximity) | selectattr('attributes.dir_of_travel', 'eq', 'arrived') | list | count | float(0) > float(0) %}
       {% set towards = expand(input_proximity) 
@@ -789,6 +787,7 @@ trigger:
     for: !input input_proximity_duration
 
   - platform: template
+    id: person_proximity_off
     value_template: >
       {% set arrived = expand(input_proximity) | selectattr('attributes.dir_of_travel', 'eq', 'arrived') | list | count | float(0) > float(0) %}
       {% set towards = expand(input_proximity) 
@@ -802,22 +801,20 @@ trigger:
       {{ arrived == false and towards == false}}
     for: !input input_proximity_duration
 
-  - platform: template
-    value_template: "{{ expand(input_persons) | selectattr('state', 'eq', 'home') | list | count == 0 }}"
-    id: person-presence-off
-    for: !input input_people_leaving_home_duration
-
   # W I N D O W  O P E N
   - platform: template
     value_template: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
     for: !input input_windows_reaction_time_open
+    id: window_on
 
   - platform: template
     value_template: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count == 0 }}"
     for: !input input_windows_reaction_time_close
+    id: window_off
 
   # M O D E   -   W I N T E R
   - platform: template
+    id: winter_mode_on
     value_template: >
       {% if input_mode_winter != none %}
         {{ states(input_mode_winter) == 'on' }}
@@ -826,6 +823,7 @@ trigger:
       seconds: 2
 
   - platform: template
+    id: winter_mode_off
     value_template: >
       {% if input_mode_winter != none %}
         {{ states(input_mode_winter) == 'off' }}
@@ -835,6 +833,7 @@ trigger:
 
   # O U T S I D E   T E M P E R A T U R E
   - platform: template
+    id: outside_on
     value_template: >
       {% if input_mode_outside_temperature != none %}
         {% set state = states(input_mode_outside_temperature) %}
@@ -845,6 +844,7 @@ trigger:
       seconds: 2
 
   - platform: template
+    id: outside_off
     value_template: >
       {% if input_mode_outside_temperature != none %}
         {% set state = states(input_mode_outside_temperature) %}
@@ -856,62 +856,70 @@ trigger:
 
   # M O D E   -   M A I N T A N A C E
   - platform: template
+    id: force_max_temperature_on
     value_template: "{{ input_force_max_temperature != none and is_state(input_force_max_temperature, 'on') }}"
     for:
       seconds: 2
 
   - platform: template
+    id: force_max_temperature_off
     value_template: "{{ input_force_max_temperature != none and is_state(input_force_max_temperature, 'off') }}"
     for:
       seconds: 2
 
   # M O D E   -   P A R T Y
   - platform: template
+    id: party_on
     value_template: "{{ input_mode_party != none and states(input_mode_party) in ['on','active'] }}"
     for:
       seconds: 2
 
   - platform: template
     value_template: "{{ input_mode_party != none and states(input_mode_party) in ['off','idle','paused'] }}"
-    id: party-off
+    id: party_off
     for:
       seconds: 2
 
   # M O D E   -   G U E S T
   - platform: template
+    id: person_guest_on
     value_template: "{{ input_mode_guest != none and states(input_mode_guest) in ['on','active'] }}"
     for:
       seconds: 2
+
   - platform: template
     value_template: "{{ input_mode_guest != none and states(input_mode_guest) in ['off','idle','paused'] }}"
-    id: guest-presence-off
+    id: person_guest_off
     for:
       seconds: 2
 
   # P R E S E N C E   S E N S O R
   - platform: template
+    id: presence_on
     value_template: "{{ input_presence_sensor != none and is_state(input_presence_sensor, 'on') }}"
     for: !input input_presence_reaction_on_time
 
   - platform: template
     value_template: "{{ input_presence_sensor != none and is_state(input_presence_sensor, 'off') }}"
-    id: sensor-personpresence-off
+    id: presence_off
     for: !input input_presence_reaction_off_time
 
   # P R E S E N C E   S C H E D U L E R
   - platform: template
+    id: presence_scheduler_on
     value_template: "{{ input_scheduler_presence != none and is_state(input_scheduler_presence, 'on') }}"
     for:
       seconds: 2
 
   - platform: template
+    id: presence_scheduler_off
     value_template: "{{ input_scheduler_presence != none and is_state(input_scheduler_presence, 'off') }}"
     for:
       seconds: 2
 
   # E X T E R N A L  C A L I B R A T I O N   S E N S O R
   - platform: template
-    id: "calibration_sensor_temp"
+    id: calibration_sensor_temperature_change
     value_template: >
       {% if input_temperature_sensor != none %}
         {{ (now() - states.sensor[input_temperature_sensor.split('.')[1]].last_updated) >= timedelta(hours=input_calibration_timeout.hours, minutes=input_calibration_timeout.minutes, seconds=input_calibration_timeout.seconds) }}
@@ -920,18 +928,19 @@ trigger:
       {% endif %}
 
   - platform: state
-    id: "calibration_trv_temp"
+    id: calibration_valve_temperature_change
     entity_id: !input input_trvs
     attribute: current_temperature
     for: !input input_calibration_timeout
 
   # C O M F O R T   T E M P   C H A N G E   B Y   T I M E
   - platform: template
-    id: "comfort_changed_by_time"
-    value_template: "{{ now().strftime('%H:%M') in (input_time_based_comfort_change | map(attribute='time') | list) }}"
+    id: temperature_comfort_change_time_based
+    value_template: "{{ now().strftime('%H:%M') in (input_time_based_temperature_change_valve_target | map(attribute='time') | list) }}"
 
   # F R O S T   P R O T E C T I O N
   - platform: template
+    id: frost_protection_on
     value_template: >
       {% set is_frost_protection_configured = input_frost_protection_duration.hours | int > 0 or input_frost_protection_duration.minutes | int > 0 or input_frost_protection_duration.seconds | int > 0 %}
       {% set is_frost_protection_configured = iif(is_frost_protection_configured,is_frost_protection_configured,days in input_frost_protection_duration) %}
@@ -1006,7 +1015,7 @@ variables:
   input_reset_comfort_temperature: !input input_reset_comfort_temperature
   input_start_party_timer_on_physical_change: !input input_start_party_timer_on_physical_change
   input_calibration_rounding_full_values: !input input_calibration_rounding_full_values
-  input_time_based_comfort_change: !input input_time_based_comfort_change
+  input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
   input_service_call_delay: !input input_service_call_delay
   input_calibration_generic: !input input_calibration_generic
   input_not_heat_but_auto: !input input_not_heat_but_auto
@@ -1017,12 +1026,14 @@ variables:
   valves: "{{ expand(input_trvs) | map(attribute='entity_id') | list }}"
   valves_off_mode: "{{ valves | expand | selectattr('attributes.hvac_modes','search','(?i)off') | map(attribute='entity_id') | list }}"
   valves_without_off_mode: "{{ valves | reject('in',valves_off_mode) | list }}"
-
   valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
   valves_danfoss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
   valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
   valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
   valves_external_sensor: "{{ valves_danfoss + valves_popp + valves_hive }}"
+
+  # EVLAUATING TRIGGER IDs
+  is_trigger_calibration: "{{ mode != 'off' and 'calibration' in trigger.id and input_temperature_sensor != none }}"
 
 ##################################################
 ########### C O N D I T I O N S ##################
@@ -1032,15 +1043,14 @@ condition:
   - condition: or
     conditions:
       - condition: template
-        value_template: "{{ trigger.id == 'valve_current_temp_change' and input_aggressive_mode }}"
+        value_template: "{{ is_trigger_calibration }}"
+
       - condition: template
-        value_template: "{{ trigger.id == 'comfort_change' and input_temperature_comfort != none and trigger.to_state.context.id != none and trigger.to_state.context.parent_id == none and trigger.to_state.context.user_id == none }}"
+        value_template: "{{ trigger.id == 'temperature_change_valve_target' and input_temperature_comfort != none and trigger.to_state.context.id != none and trigger.to_state.context.parent_id == none and trigger.to_state.context.user_id == none }}"
       - condition: template
-        value_template: "{{ trigger.id == 'comfort_change' and input_temperature_comfort != none and trigger.to_state.context.id != none and trigger.to_state.context.parent_id == none and trigger.to_state.context.user_id == none }}"
+        value_template: "{{ trigger.id == 'temperature_change_valve_target' and input_temperature_comfort != none and trigger.to_state.context.id != none and trigger.to_state.context.parent_id == none and trigger.to_state.context.user_id == none }}"
       - condition: template
-        value_template: "{{ (trigger.id == 'calibration_sensor_temp' or trigger.id == 'calibration_trv_temp') and input_temperature_sensor != none }}"
-      - condition: template
-        value_template: "{{ trigger.id not in ['calibration_sensor_temp','comfort_change','calibration_trv_temp','valve_current_temp_change'] }}"
+        value_template: "{{ trigger.id not in ['calibration_sensor_temperature_change','temperature_change_valve_target','calibration_valve_temperature_change', 'calibration_valve_temperature_change'] }}"
 
 ##################################################
 ################## A C T I O N ###################
@@ -1277,8 +1287,8 @@ action:
           - condition: template
             value_template: >
               {{ 
-                (trigger.id == 'comfort_change' and input_change_comfort_temperature_on_physical_change) or
-                trigger.id == 'comfort_changed_by_time'
+                (trigger.id == 'temperature_change_valve_target' and input_change_comfort_temperature_on_physical_change) or
+                trigger.id == 'temperature_comfort_change_time_based'
               }}
 
           - condition: template
@@ -1288,14 +1298,14 @@ action:
           - variables:
               timestamp: "{{ now().strftime('%H:%M') }}"
               new_manual_temp_r: >
-                {% if trigger.id == 'comfort_changed_by_time' %}
-                    {{ input_time_based_comfort_change | selectattr("time", "eq", timestamp) | map(attribute='temp') | first | default(state_temperature_comfort) }}
+                {% if trigger.id == 'temperature_comfort_change_time_based' %}
+                    {{ input_time_based_temperature_change_valve_target | selectattr("time", "eq", timestamp) | map(attribute='temp') | first | default(state_temperature_comfort) }}
                 {% else %}
                   {{ trigger.to_state.attributes.temperature }}
                 {% endif %}
               max_comfort_temp_r: "{{ state_attr(input_temperature_comfort,'max') }}"
               min_comfort_temp_r: "{{ state_attr(input_temperature_comfort,'min') }}"
-              comfort_change_error: "{{ new_manual_temp_r == none or max_comfort_temp_r == none or min_comfort_temp_r == none}}"
+              temperature_change_valve_target_error: "{{ new_manual_temp_r == none or max_comfort_temp_r == none or min_comfort_temp_r == none}}"
 
           - service: system_log.write
             data:
@@ -1305,11 +1315,11 @@ action:
                 new_manual_temp_r: {{ new_manual_temp_r }}
                 max_comfort_temp_r: {{ max_comfort_temp_r }}
                 min_comfort_temp_r: {{ min_comfort_temp_r }}
-                comfort_change_error: {{ comfort_change_error }}
+                temperature_change_valve_target_error: {{ temperature_change_valve_target_error }}
                 timestamp: {{ timestamp }}
 
           - condition: template
-            value_template: "{{ comfort_change_error == false }}"
+            value_template: "{{ temperature_change_valve_target_error == false }}"
 
           - variables:
               new_manual_temp: "{{ new_manual_temp_r | float(0) }}"
@@ -1370,16 +1380,10 @@ action:
 
       # CALIBRATION -------------------------------------------------------------------------------------------------------------
       - conditions:
-          - condition: or
-            conditions:
-              - condition: trigger
-                id: "calibration_trv_temp"
-              - condition: trigger
-                id: "calibration_sensor_temp"
           - condition: template
             value_template: "{{ input_calibration_generic == false }}"
           - condition: template
-            value_template: "{{ mode != 'off' }}"
+            value_template: "{{ is_trigger_calibration }}"
 
         sequence:
           - repeat:
@@ -1522,7 +1526,7 @@ action:
           - condition: template
             value_template: "{{  input_temperature_comfort != none and float(states(input_temperature_comfort)) != float(input_temperature_comfort_static) }}"
           - condition: template
-            value_template: "{{ (trigger.id in ['party-off'] or (trigger.id in ['scheduler-off','person-presence-off','guest-presence-off','sensor-presence-off'] and set_comfort == false)) and input_reset_comfort_temperature == true }}"
+            value_template: "{{ (trigger.id in ['party_off'] or (trigger.id in ['scheduler_off','person_off','person_guest_off','sensor-presence-off'] and set_comfort == false)) and input_reset_comfort_temperature == true }}"
         sequence:
           - service: input_number.set_value
             data:
