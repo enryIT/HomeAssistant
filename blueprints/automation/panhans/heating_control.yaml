@@ -1019,10 +1019,10 @@ variables:
   valves_without_off_mode: "{{ valves | reject('in',valves_off_mode) | list }}"
 
   valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
-  valves_danfloss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
+  valves_danfoss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
   valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
   valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
-  valves_external_sensor: "{{ valves_danfloss + valves_popp + valves_hive }}"
+  valves_external_sensor: "{{ valves_danfoss + valves_popp + valves_hive }}"
 
 ##################################################
 ########### C O N D I T I O N S ##################
