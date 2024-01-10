@@ -53,7 +53,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta2
+    **Version**: 4.0_beta3
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1017,7 +1017,12 @@ variables:
   valves: "{{ expand(input_trvs) | map(attribute='entity_id') | list }}"
   valves_off_mode: "{{ valves | expand | selectattr('attributes.hvac_modes','search','(?i)off') | map(attribute='entity_id') | list }}"
   valves_without_off_mode: "{{ valves | reject('in',valves_off_mode) | list }}"
+
   valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
+  valves_danfloss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
+  valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
+  valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
+  valves_external_sensor: "{{ valves_danfloss + valves_popp + valves_hive }}"
 
 ##################################################
 ########### C O N D I T I O N S ##################
@@ -1251,7 +1256,8 @@ action:
         - valves_off_mode: {{ valves_off_mode }} {{ " \n " }}
         - valves_without_off_mode: {{ valves_without_off_mode }} {{ " \n " }}
         - valves_tado: {{ valves_tado }} {{ " \n " }}
-        - input_frost_protection_duration: {{ input_frost_protection_duration }}
+        - input_frost_protection_duration: {{ input_frost_protection_duration }}  {{ " \n " }}
+        - trigger_id: {{ trigger.id }}
       level: debug
       logger: blueprints.panhans.heatingcontrol
 
@@ -1377,7 +1383,7 @@ action:
                       {% set entities =  device_entities(device_id(current_valve)) %}
                       {% set calibration_entity_id = namespace(id=[]) %} 
                       {% for s in entities %}
-                        {% if (('calibration' in s) or ('offset' in s))  %}
+                        {% if (('calibration' in s) or ('offset' in s) or ('external' in s))  %}
                           {% set calibration_entity_id.id = s %}
                         {% endif %}
                       {% endfor %} 
@@ -1407,58 +1413,75 @@ action:
                     - condition: template
                       value_template: "{{ calibration_entity != '' }}"
                   then:
-                    - variables:
-                        step_r: "{{ state_attr(calibration_entity,'step') }}"
-                        min_calibration_value_r: "{{ state_attr(calibration_entity,'min') }}"
-                        max_calibration_value_r: "{{ state_attr(calibration_entity,'max') }}"
+#Popp, Danfloss, Hive Calibration
+                    - if:
+                        - condition: template
+                          value_template: >
+                            {{ 
+                              current_valve in valves_external_sensor and
+                              is_number(local_temperature_r) 
+                            }}
+                      then:
+                        - service: number.set_value
+                          data:
+                            value: "{{ (local_temperature_r * 100) | int }}"
+                          target:
+                            entity_id: "{{ calibration_entity }}"
 
-                        step: "{{ step_r | float(0) }}"
-                        actual_trv_temperature: "{{ float(local_temperature) - (offset_old | float(0)) | round(1) }}"
-                        min_calibration_value: "{{ min_calibration_value_r | float(0) }}"
-                        max_calibration_value: "{{ max_calibration_value_r | float(0) }}"
-                        new_calibration_value: "{{ actual_sensor_temperature - actual_trv_temperature }}"
+                      # Default Calibration
+                      else:
+                        - variables:
+                            step_r: "{{ state_attr(calibration_entity,'step') }}"
+                            min_calibration_value_r: "{{ state_attr(calibration_entity,'min') }}"
+                            max_calibration_value_r: "{{ state_attr(calibration_entity,'max') }}"
 
-                        offset_new: >
-                          {% if(new_calibration_value > max_calibration_value) %}
-                            {% set new_calibration_value = max_calibration_value %}
-                          {% elif (new_calibration_value < min_calibration_value) %}
-                            {% set new_calibration_value = min_calibration_value %}
-                          {% endif %}
+                            step: "{{ step_r | float(0) }}"
+                            actual_trv_temperature: "{{ float(local_temperature) - (offset_old | float(0)) | round(1) }}"
+                            min_calibration_value: "{{ min_calibration_value_r | float(0) }}"
+                            max_calibration_value: "{{ max_calibration_value_r | float(0) }}"
+                            new_calibration_value: "{{ actual_sensor_temperature - actual_trv_temperature }}"
 
-                          {% set offset = (new_calibration_value | float(0) / step) | round(0) * step %}
-                          {{ iif(input_calibration_rounding_full_values == true, float(offset) | round(), offset) }}
+                            offset_new: >
+                              {% if(new_calibration_value > max_calibration_value) %}
+                                {% set new_calibration_value = max_calibration_value %}
+                              {% elif (new_calibration_value < min_calibration_value) %}
+                                {% set new_calibration_value = min_calibration_value %}
+                              {% endif %}
 
-                    - service: system_log.write
-                      data:
-                        level: debug
-                        logger: blueprints.panhans.heatingcontrol
-                        message: >
-                          Calibration:  {{" \n "}}
-                          offset_old: {{ offset_old }}  {{" \n "}}
-                          offset_new: {{ offset_new }}  {{" \n "}}
-                          step: {{ step }} {{" \n "}}
-                          diff: {{ (float(offset_old) - float(offset_new)) | abs }} {{" \n "}}
-                          delta: {{ float(input_calibration_delta) }}
-                          full_rounding: "{{ input_calibration_rounding_full_values }}"
+                              {% set offset = (new_calibration_value | float(0) / step) | round(0) * step %}
+                              {{ iif(input_calibration_rounding_full_values == true, float(offset) | round(), offset) }}
 
-                    - condition: template
-                      value_template: "{{ is_number(step_r) == true and is_number(min_calibration_value_r) and is_number(max_calibration_value_r) == true }}"
+                        - service: system_log.write
+                          data:
+                            level: debug
+                            logger: blueprints.panhans.heatingcontrol
+                            message: >
+                              Calibration:  {{" \n "}}
+                              offset_old: {{ offset_old }}  {{" \n "}}
+                              offset_new: {{ offset_new }}  {{" \n "}}
+                              step: {{ step }} {{" \n "}}
+                              diff: {{ (float(offset_old) - float(offset_new)) | abs }} {{" \n "}}
+                              delta: {{ float(input_calibration_delta) }}
+                              full_rounding: "{{ input_calibration_rounding_full_values }}"
 
-                    - condition: template
-                      value_template: "{{ (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) }}"
+                        - condition: template
+                          value_template: "{{ is_number(step_r) == true and is_number(min_calibration_value_r) and is_number(max_calibration_value_r) == true }}"
 
-                    - service: system_log.write
-                      data:
-                        level: debug
-                        logger: blueprints.panhans.heatingcontrol
-                        message: >
-                          Calibration set to:  {{ offset_new }} on {{ calibration_entity }}
+                        - condition: template
+                          value_template: "{{ (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) }}"
 
-                    - service: number.set_value
-                      data:
-                        value: "{{ float(offset_new) }}"
-                      target:
-                        entity_id: "{{ calibration_entity }}"
+                        - service: system_log.write
+                          data:
+                            level: debug
+                            logger: blueprints.panhans.heatingcontrol
+                            message: >
+                              Calibration set to:  {{ offset_new }} on {{ calibration_entity }}
+
+                        - service: number.set_value
+                          data:
+                            value: "{{ float(offset_new) }}"
+                          target:
+                            entity_id: "{{ calibration_entity }}"
 
                   # Tado Calibration
                   else:
