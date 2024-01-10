@@ -1413,18 +1413,22 @@ action:
                     - condition: template
                       value_template: "{{ calibration_entity != '' }}"
                   then:
-#Popp, Danfloss, Hive Calibration
+                    #Popp, Danfloss, Hive Calibration
                     - if:
                         - condition: template
                           value_template: >
                             {{ 
                               current_valve in valves_external_sensor and
-                              is_number(local_temperature_r) 
+                              is_number(local_temperature_r)
                             }}
                       then:
+                        - variables:
+                            offset_new: "{{ (local_temperature_r * 100) | int }}"
+                        - condition: template
+                          value_template: "{{ offset_new != offset_old }}"
                         - service: number.set_value
                           data:
-                            value: "{{ (local_temperature_r * 100) | int }}"
+                            value: "{{ offset_new }}"
                           target:
                             entity_id: "{{ calibration_entity }}"
 
