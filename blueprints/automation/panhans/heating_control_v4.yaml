@@ -48,12 +48,14 @@ blueprint:
 
     ✅ make use of HA's proximity integration aka geofencing
 
+    ✅ Fahrenheit support
+
     ❌ possibility to pause calibration (will be implemented in beta)
 
 
     ## Additional Information
 
-    **Version**: 4.0_beta5
+    **Version**: 4.0_beta6
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -89,10 +91,10 @@ blueprint:
       selector:
         number:
           min: 4.0
-          max: 24.0
+          max: 75.0
           step: 0.5
-          mode: slider
-          unit_of_measurement: °C
+          mode: box
+          unit_of_measurement: °C / °F
 
     input_temperature_minimum:
       name: ❄️🎚️ Minimum Temp (optional)
@@ -115,10 +117,10 @@ blueprint:
       selector:
         number:
           min: 12.0
-          max: 30.0
+          max: 86.0
           step: 0.5
-          mode: slider
-          unit_of_measurement: °C
+          mode: box
+          unit_of_measurement: °C / °F
 
     input_temperature_comfort:
       name: ☀️🎚️ Comfort temperature (optional)
@@ -216,7 +218,7 @@ blueprint:
     input_proximity_distance:
       name: ↔️ Proximity Distance
       description: >
-        The distance when proximity sensor gets impact for this automation.
+        The distance when proximity sensor gets impact for this automation. Hint: Unit depends on the setup of your integration.
       default: 500
       selector:
         number:
@@ -386,10 +388,10 @@ blueprint:
       selector:
         number:
           min: 5.0
-          max: 17.0
+          max: 62.0
           step: 0.5
-          mode: slider
-          unit_of_measurement: °C
+          mode: box
+          unit_of_measurement: °C / °F
 
     input_frost_protection_duration:
       name: 🧊 Frost Protection Fallback Duration
@@ -464,10 +466,10 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 2
+          max: 5
           step: 0.1
           mode: slider
-          unit_of_measurement: °C
+          unit_of_measurement: °C / °F
 
     # W I N T E R  M O D E
     input_mode_winter:
@@ -516,10 +518,10 @@ blueprint:
       selector:
         number:
           min: 5
-          max: 20
+          max: 68
           step: 1
-          mode: slider
-          unit_of_measurement: °C
+          mode: box
+          unit_of_measurement: °C / °F
 
     # M O D I F I E R S
 
@@ -573,7 +575,7 @@ blueprint:
       name: ⚙️ Agressive Mode
       description: >
         Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
-        When activated the target temperature of your vavles will set to max or min until it matches the real target temperature +/- 0.5°C.
+        When activated the target temperature of your vavles will set to max or min until it matches the real target temperature +/- 0.5 °C / 1 °F.
       default: false
       selector:
         boolean: {}
@@ -1331,7 +1333,7 @@ action:
                 data:
                   level: warning
                   logger: blueprints.panhans.heatingcontrol
-                  message: "{{ input_temperature_comfort }} can handle numbers between {{ min_comfort_temp }} and {{ max_comfort_temp }}. You want to set the temperature to {{ new_manual_temp }} °C. So comfort temperature will automatically adjust to {{ real_manual_temp }} °C."
+                  message: "{{ input_temperature_comfort }} can handle numbers between {{ min_comfort_temp }} and {{ max_comfort_temp }}. You want to set the temperature to {{ new_manual_temp }} °C. So comfort temperature will automatically adjust to {{ real_manual_temp }} °C / °F."
 
           # IF NEW COMFORT TEMP CHANGED -> SET NEW
           - if:
@@ -1401,11 +1403,12 @@ action:
                   value_template: "{{ calibration_entity != '' or current_valve in valves_tado or input_calibration_generic }}"
 
                 - variables:
+                    is_fahrenheit: "{{ state_attr(current_valve,'max_temp') | float(0) > 40 }}"
                     offset_old_r: >
                       {% if  calibration_entity != '' %}
                         {{ states(calibration_entity) }}
                       {% else %}
-                        {{ state_attr(current_valve, 'offset_celsius') }}
+                        {{ state_attr(current_valve, iif(is_fahrenheit,'offset_fahrenheit','offset_celsius')) }}
                       {% endif %}
                     actual_sensor_temperature_r: "{{ states(input_temperature_sensor) }}"
                     local_temperature_r: "{{ state_attr(current_valve,'current_temperature') }}"
@@ -1673,12 +1676,14 @@ action:
 
                     # AGGRESSIVE MODE
                     - variables:
+                        fahrenheit: "{{ max_temp_r > 40 }}"
+                        thresh: "{{ iif(fahrenheit, 0.9, 0.5) }}"
                         new_temperature: >
                           {% if input_aggressive_mode %}
                               {% set temp_diff = current_valve_temp - new_temperature %}
-                              {% if temp_diff < -0.5 %}
+                              {% if temp_diff < float(thresh) * -1 %}
                                 {{ max_temp_r }}
-                              {% elif temp_diff > 0.5 %}
+                              {% elif temp_diff > float(thresh) %}
                                 {{ min_temp_r }}
                               {% else %}
                                 {{ new_temperature }}
