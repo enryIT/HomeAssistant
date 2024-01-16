@@ -1400,7 +1400,7 @@ action:
                       {{ iif (calibration_entity_id.id[0] is defined, calibration_entity_id.id, '')  }}
 
                 - condition: template
-                  value_template: "{{ calibration_entity != '' or current_valve in valves_tado or input_calibration_generic }}"
+                  value_template: "{{ calibration_entity != '' or current_valve in valves_tado or current_valve in valves_external_sensor or input_calibration_generic }}"
 
                 - variables:
                     is_fahrenheit: "{{ state_attr(current_valve,'max_temp') | float(0) > 40 }}"
