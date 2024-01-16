@@ -1026,11 +1026,6 @@ variables:
   valves: "{{ expand(input_trvs) | map(attribute='entity_id') | list }}"
   valves_off_mode: "{{ valves | expand | selectattr('attributes.hvac_modes','search','(?i)off') | map(attribute='entity_id') | list }}"
   valves_without_off_mode: "{{ valves | reject('in',valves_off_mode) | list }}"
-  valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
-  valves_danfoss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
-  valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
-  valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
-  valves_external_sensor: "{{ valves_danfoss + valves_popp + valves_hive }}"
 
   # E V A L U A T I O N --------------------------------------------------------------
   
@@ -1343,6 +1338,59 @@ variables:
     {% endfor %}
 
     {{ dict.from_keys(n.dict) }}
+
+  # --------------------------------------------
+  # CALIBRATION --------------------------------
+  # --------------------------------------------
+
+  is_metric: true
+  calibration_sensor_temperature: "{{ states(input_temperature_sensor) }}"
+  rounding: "{{ iif(input_calibration_rounding_full_values,0,2) }}"
+
+  # TADO
+  valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
+  calibration_tado: >
+    {% set n = namespace(dict=[]) %}
+    {% for valve in valves_tado %}
+
+      {% offset_old = state_attr(current_valve, iif(is_metric,'offset_celsius','offset_fahrenheit')) %}
+      {% local_temperature = state_attr(current_valve,'current_temperature') %}
+
+      {% set offset = float(actual_sensor_temperature) - float(local_temperature) %}
+      {% set offset_new = ( float(offset) + (offset_old | float(0)) ) | round(rounding) %}
+
+      {% if is_calibration and (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) %}
+        {% set n.dict = n.dict + [(valve, [{'offset': offset_new}])] %}
+      {% endif %}
+      
+    {% endfor %}
+
+    {{ dict.from_keys(n.dict) }}
+
+  # EXTERNAL SENSOR
+  valves_danfoss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
+  valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
+  valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
+  valves_external_sensor: "{{ valves_danfoss + valves_popp + valves_hive }}"
+
+  calibration_external_sensor: >
+    {% set n = namespace(dict=[]) %}
+    {% for valve in valves_tado %}
+
+      {% offset_old = state_attr(current_valve, iif(is_metric,'offset_celsius','offset_fahrenheit')) %}
+      {% local_temperature = state_attr(current_valve,'current_temperature') %}
+
+      {% set offset = float(actual_sensor_temperature) - float(local_temperature) %}
+      {% set offset_new = ( float(offset) + (offset_old | float(0)) ) | round(rounding) %}
+
+      {% if is_calibration and (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) %}
+        {% set n.dict = n.dict + [(valve, [{'offset': offset_new}])] %}
+      {% endif %}
+      
+    {% endfor %}
+
+    {{ dict.from_keys(n.dict) }}
+
 
 ##################################################
 ########### C O N D I T I O N S ##################
