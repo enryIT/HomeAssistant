@@ -1430,11 +1430,11 @@ action:
                           value_template: >
                             {{ 
                               current_valve in valves_external_sensor and
-                              is_number(local_temperature_r)
+                              is_number(actual_sensor_temperature)
                             }}
                       then:
                         - variables:
-                            offset_new: "{{ (local_temperature_r * 100) | int }}"
+                            offset_new: "{{ (actual_sensor_temperature * 100) | int }}"
                         - condition: template
                           value_template: "{{ offset_new != offset_old }}"
                         - service: number.set_value
