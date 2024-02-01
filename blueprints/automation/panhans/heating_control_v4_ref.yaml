@@ -1248,13 +1248,6 @@ variables:
 
   temperature: >
     {% set temp = state_temperature_comfort %}
-
-    {# if is_manual_change #}
-      {# set temp = trigger.to_state.attributes.temperature #}
-    {# elif is_reset #}
-      {# set temp = input_temperature_comfort_static #}
-    {# endif #}
-
     {{ iif(set_comfort, temp, state_temperature_min) }}
 
   # EVLAUATING TRIGGER IDs
@@ -1282,7 +1275,7 @@ variables:
 
       {% if valve_mode != 'off' %}
 
-        {# GENERIC CALIBRATION #}
+      
         {% if input_calibration_generic and input_temperature_sensor != none %}
 
           {% set sensor_temp = states(input_temperature_sensor) %}
@@ -1305,7 +1298,7 @@ variables:
           {% endif %}
         {% endif %}
 
-        {# AGGRESSIVE MODE #}
+
         {% if input_aggressive_mode %}
           {% set temp_diff = valve_temp - current_valve_temp %}
 
