@@ -580,15 +580,6 @@ blueprint:
       selector:
         boolean: {}
 
-    input_split_service_calls:
-      name: ⚙️ Split Service Calls
-      description: >
-        Mode and temperature are set in one service call. Some TRVs have problems by setting it this way.<br/>
-        Activate this option to set mode and temperature in separate service calls.
-      default: false
-      selector:
-        boolean: {}
-
     input_service_call_delay:
       name: ⚙️ Service Call Delay
       description: >
@@ -1016,7 +1007,6 @@ variables:
   input_presence_reaction_off_time: !input input_presence_reaction_off_time
   input_presence_reaction_on_time: !input input_presence_reaction_on_time
   input_temperature_sensor: !input input_temperature_sensor
-  input_split_service_calls: !input input_split_service_calls
   input_calibration_delta: !input input_calibration_delta
   input_off_instead_min: !input input_off_instead_min
   input_change_comfort_temperature_on_physical_change: !input input_change_comfort_temperature_on_physical_change
@@ -1673,44 +1663,32 @@ action:
 
             - if:
                 - condition: template
-                  value_template: "{{ input_split_service_calls == true }}"
+                  value_template: "{{ states(thermostat) != mode }}"
               then:
-                - if:
-                    - condition: template
-                      value_template: "{{ states(thermostat) != mode }}"
-                  then:
-                    - service: climate.set_hvac_mode
-                      target:
-                        entity_id: "{{ thermostat }}"
-                      data:
-                        hvac_mode: "{{ mode }}"
-
-                    - delay:
-                        hours: "{{ input_service_call_delay.hours }}"
-                        minutes: "{{ input_service_call_delay.minutes }}"
-                        seconds: "{{ input_service_call_delay.seconds }}"
-
-                - if:
-                    - condition: template
-                      value_template: "{{ state_attr(thermostat, 'temperature') != target_temperature }}"
-                  then:
-                    - service: climate.set_temperature
-                      data:
-                        entity_id: "{{ thermostat }}"
-                        temperature: "{{ target_temperature | float }}"
-
-              else:
-                - service: climate.set_temperature
-                  data:
-                    hvac_mode: "{{ mode }}"
-                    temperature: "{{ target_temperature | float }}"
+                - service: climate.set_hvac_mode
                   target:
                     entity_id: "{{ thermostat }}"
+                  data:
+                    hvac_mode: "{{ mode }}"
 
-            - delay:
-                hours: "{{ input_service_call_delay.hours }}"
-                minutes: "{{ input_service_call_delay.minutes }}"
-                seconds: "{{ input_service_call_delay.seconds }}"
+                - delay:
+                    hours: "{{ input_service_call_delay.hours }}"
+                    minutes: "{{ input_service_call_delay.minutes }}"
+                    seconds: "{{ input_service_call_delay.seconds }}"
+
+            - if:
+                - condition: template
+                  value_template: "{{ state_attr(thermostat, 'temperature') != target_temperature }}"
+              then:
+                - service: climate.set_temperature
+                  data:
+                    entity_id: "{{ thermostat }}"
+                    temperature: "{{ target_temperature | float }}"
+
+                - delay:
+                    hours: "{{ input_service_call_delay.hours }}"
+                    minutes: "{{ input_service_call_delay.minutes }}"
+                    seconds: "{{ input_service_call_delay.seconds }}"
 
       - if:
           - condition: template
