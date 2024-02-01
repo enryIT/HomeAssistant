@@ -1342,7 +1342,7 @@ variables:
   calibration_tado: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration %}
+    {% if is_calibration and input_calibration_generic == false %}
       {% for valve in valves_tado %}
 
         {% set offset_old = state_attr(valve, iif(is_metric, 'offset_celsius', 'offset_fahrenheit')) %}
@@ -1368,7 +1368,7 @@ variables:
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
-    {% if is_calibration %}
+    {% if is_calibration and input_calibration_generic == false %}
       
       {% for valve in valves_external_sensor %}
 
@@ -1394,7 +1394,7 @@ variables:
   calibration_common: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration %}
+    {% if is_calibration and input_calibration_generic == false %}
       
       {% for valve in valves_calibration_common %}
 
