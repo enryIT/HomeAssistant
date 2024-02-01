@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_ref2
+    **Version**: 4.0_ref3
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1324,7 +1324,7 @@ variables:
 
   is_metric: "{{ input_temperature_sensor == none or (input_temperature_sensor != none and state_attr(input_temperature_sensor,VAR_UNIT_OF_MEASUREMENT) == '°C') }}"
 
-  rounding: "{{ iif(input_calibration_rounding_full_values, 0, 2) }}"
+  rounding: "{{ iif(input_calibration_rounding_full_values, 0, 2)  | float }}"
 
   # TADO
   valves_tado: "{{ valves | select('is_device_attr', 'manufacturer', 'Tado') | list }}"
@@ -1334,8 +1334,8 @@ variables:
     {% if is_calibration and input_calibration_generic == false %}
       {% for valve in valves_tado %}
 
-        {% set offset_old = state_attr(valve, iif(is_metric, 'offset_celsius', 'offset_fahrenheit')) %}
-        {% set local_temperature = state_attr(valve, 'current_temperature') %}
+        {% set offset_old = state_attr(valve, iif(is_metric, 'offset_celsius', 'offset_fahrenheit')) | float %}
+        {% set local_temperature = state_attr(valve, 'current_temperature') | float %}
         {% set calibration_sensor_temperature = states(input_temperature_sensor) %}
 
         {% set offset = float(calibration_sensor_temperature) - float(local_temperature) %}
@@ -1367,9 +1367,9 @@ variables:
                                     selectattr('entity_id', 'search', 'external') |
                                     map(attribute='entity_id') | first %}
 
-        {% set calibration_sensor_temperature = states(input_temperature_sensor) %}
+        {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
 
-        {% set old_state = states(calibration_entity) %}
+        {% set old_state = states(calibration_entity) | float %}
         {% set new_state = (calibration_sensor_temperature | float(0) * 100) | int %}
 
         {% if is_calibration and (float(old_state) - float(new_state)) | abs >= (input_calibration_delta | float(0) * 100) | int %}
@@ -1398,11 +1398,11 @@ variables:
         {% if calibration_entities | count > 0 %}
 
           {% set calibration_entity = calibration_entities | first %}
-          {% set step = state_attr(calibration_entity, 'step') %}
-          {% set min_calibration_value = state_attr(calibration_entity,'min') %}
-          {% set max_calibration_value = state_attr(calibration_entity,'max') %}
-          {% set thermostat_temperature = state_attr(valve, 'current_temperature') %}
-          {% set calibration_sensor_temperature = states(input_temperature_sensor) %}
+          {% set step = state_attr(calibration_entity, 'step') | float %}
+          {% set min_calibration_value = state_attr(calibration_entity,'min') | float %}
+          {% set max_calibration_value = state_attr(calibration_entity,'max') | float %}
+          {% set thermostat_temperature = state_attr(valve, 'current_temperature') | float %}
+          {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
 
           {% set new_calibration_value = calibration_sensor_temperature - thermostat_temperature %}
 
