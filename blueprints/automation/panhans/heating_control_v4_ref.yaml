@@ -676,6 +676,7 @@ trigger:
 
   - platform: event
     event_type: automation_reloaded
+    id: reload
 
   # S T A T E   T R I G G E R S
   - platform: state
@@ -1248,6 +1249,13 @@ variables:
 
   temperature: >
     {% set temp = state_temperature_comfort %}
+
+    {# if is_manual_change #}
+      {# set temp = trigger.to_state.attributes.temperature #}
+    {# elif is_reset #}
+      {# set temp = input_temperature_comfort_static #}
+    {# endif #}
+
     {{ iif(set_comfort, temp, state_temperature_min) }}
 
   # EVLAUATING TRIGGER IDs
@@ -1275,7 +1283,7 @@ variables:
 
       {% if valve_mode != 'off' %}
 
-      
+        {# GENERIC CALIBRATION #}
         {% if input_calibration_generic and input_temperature_sensor != none %}
 
           {% set sensor_temp = states(input_temperature_sensor) %}
@@ -1298,7 +1306,7 @@ variables:
           {% endif %}
         {% endif %}
 
-
+        {# AGGRESSIVE MODE #}
         {% if input_aggressive_mode %}
           {% set temp_diff = valve_temp - current_valve_temp %}
 
@@ -1452,6 +1460,13 @@ condition:
 ##################################################
 
 action:
+  - if:
+      - condition: template
+        value_template: "{{ trigger.id in ['hastart','reload'] }}"
+    then:
+      - delay:
+          seconds: 10
+
   - service: system_log.write
     data:
       message: >
