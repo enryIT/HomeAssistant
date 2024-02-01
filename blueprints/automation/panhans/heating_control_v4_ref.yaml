@@ -1463,10 +1463,43 @@ action:
     data:
       message: >
         AHC REF  {{" \n "}}
-        Mode: {{ mode }} {{" \n "}}
-        Temperature: {{ temperature }} {{" \n "}}
-        Metric: {{ is_metric }} {{" \n "}}
-        Changes: {{ changes }} {{ changes | count }}
+        state_mode_winter: {{ state_mode_winter }} {{ " \n " }}
+        state_mode_party: {{ state_mode_party }} {{ " \n " }}
+        state_mode_guest: {{ state_mode_guest }} {{ " \n " }}
+        state_outside_temp: {{ state_outside_temp }} {{ " \n " }}
+        state_force_max_temperature: {{ state_force_max_temperature }} {{ " \n " }}
+        state_window: {{ state_window }} {{ " \n " }}
+        state_temperature_comfort: {{ state_temperature_comfort }} {{ " \n " }}
+        active_scheduler: {{ active_scheduler }} {{ " \n " }}
+        is_person_based: {{ is_person_based }} {{ " \n " }}
+        is_anybody_home: {{ is_anybody_home }} {{ " \n " }}
+        is_somebody_on_way_home_state: {{ is_somebody_on_way_home_state }} {{ " \n " }}
+        is_presence_sensor_defined: {{ is_presence_sensor_defined }} {{ " \n " }}
+        is_presence_scheduler_defined: {{ is_presence_scheduler_defined }} {{ " \n " }}
+        state_presence_sensor: {{ state_presence_sensor }} {{ " \n " }}
+        state_presence_scheduler: {{ state_presence_scheduler }} {{ " \n " }}
+        is_presence_on: {{ is_presence_on }} {{ " \n " }}
+        is_scheduled_heating: {{ is_scheduled_heating }} {{ " \n " }}
+        state_scheduler: {{ state_scheduler }} {{ " \n " }}
+        is_scheduled_heating_on: {{ is_scheduled_heating_on }} {{ " \n " }}
+        is_somebody_on_way_home: {{ is_somebody_on_way_home }} {{ " \n " }}
+        is_frost_protection: {{ is_frost_protection }} {{ " \n " }}
+        state_temperature_min: {{ state_temperature_min }} {{ " \n " }}
+        set_comfort: {{ set_comfort }} {{ " \n " }}
+        mode: {{ mode }} {{ " \n " }}
+        temperature: {{ temperature }} {{ " \n " }}
+        is_manual_change: {{ is_manual_change }} {{ " \n " }}
+        is_manual_timer_start: {{ is_manual_timer_start }} {{ " \n " }}
+        is_calibration: {{ is_calibration }} {{ " \n " }}
+        changes: {{ changes }} {{ " \n " }}
+        valves_tado: {{ valves_tado }} {{ " \n " }}
+        calibration_tado: {{ calibration_tado }} {{ " \n " }}
+        valves_external_sensor: {{ valves_external_sensor }} {{ " \n " }}
+        calibration_external_sensor: {{ calibration_external_sensor }} {{ " \n " }}
+        valves_calibration_common: {{ valves_calibration_common }} {{ " \n " }}
+        calibration_common: {{ calibration_common }} {{ " \n " }}
+        is_heating: {{ is_heating }} {{ " \n " }}
+        is_metric: {{ is_heating }} {{ " \n " }}
       level: debug
       logger: blueprints.panhans.heatingcontrol
 
