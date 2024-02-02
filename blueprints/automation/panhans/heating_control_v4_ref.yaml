@@ -1633,9 +1633,9 @@ action:
           sequence:
             - variables:
                 index: "{{ repeat.index-1 }}"
-                calibration_entity: "{{ (calibration_common.keys() | list) [index] }}"
-                thermostat: "{{ (((calibration_common.values() | list) [index]) | first) ['valve'] }}"
-                offset: "{{ (((calibration_common.values() | list) [index]) | first) ['value'] }}"
+                calibration_entity: "{{ (calibration_xiaomi.keys() | list) [index] }}"
+                thermostat: "{{ (((calibration_xiaomi.values() | list) [index]) | first) ['valve'] }}"
+                offset: "{{ (((calibration_xiaomi.values() | list) [index]) | first) ['value'] }}"
 
             - service: system_log.write
               data:
