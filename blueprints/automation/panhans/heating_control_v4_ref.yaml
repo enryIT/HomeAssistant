@@ -1526,8 +1526,8 @@ action:
         changes: {{ changes }} {{ " \n " }}
         valves_tado: {{ valves_tado }} {{ " \n " }}
         calibration_tado: {{ calibration_tado }} {{ " \n " }}
-        valves_xiaomi: {{ valves_tado }} {{ " \n " }}
-        calibration_xiaomi: {{ calibration_tado }} {{ " \n " }}
+        valves_xiaomi: {{ valves_xiaomi }} {{ " \n " }}
+        calibration_xiaomi: {{ calibration_xiaomi }} {{ " \n " }}
         valves_external_sensor: {{ valves_external_sensor }} {{ " \n " }}
         calibration_external_sensor: {{ calibration_external_sensor }} {{ " \n " }}
         valves_calibration_common: {{ valves_calibration_common }} {{ " \n " }}
