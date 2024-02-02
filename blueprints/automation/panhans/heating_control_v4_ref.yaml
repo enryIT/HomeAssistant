@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_ref3
+    **Version**: 4.0_ref4
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1350,6 +1350,36 @@ variables:
 
     {{ dict.from_keys(n.dict) }}
 
+  # XIAOMI / AQARA
+  valves_xiaomi_xiaomi: "{{ valves | select('is_device_attr', 'manufacturer', 'Xiaomi') | list }}"
+  valves_xiaomi_aqara: "{{ valves | select('is_device_attr', 'manufacturer', 'Aqara') | list }}"
+  valves_xiaomi: "{{ valves_xiaomi_xiaomi + valves_xiaomi_aqara }}"
+  calibration_xiaomi: >
+    {% set n = namespace(dict=[]) %}
+
+    {% if is_calibration and input_calibration_generic == false %}
+      {% for valve in valves_xiaomi %}
+
+        {% set calibration_entities = device_entities(device_id(valve)) |
+                                    expand | selectattr('domain','in','number') |
+                                    map(attribute='entity_id') | list %}
+
+        {% if calibration_entities | count > 0 %}
+
+          {% set calibration_entity = calibration_entities | first %}
+          {% set offset_old = states(calibration_entity) | float(0) %}
+          {% set offset_new = states(input_temperature_sensor) | float %}
+
+          {% if (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) %}
+            {% set n.dict = n.dict + [(calibration_entity, [{'value': offset_new, 'valve': valve}])] %}
+          {% endif %}
+        {% endif %}
+
+      {% endfor %}
+    {% endif %}
+
+    {{ dict.from_keys(n.dict) }}
+
   # DANFOSS, POPP, HIVE
   valves_danfoss: "{{ valves | select('is_device_attr', 'manufacturer', 'Danfoss') | list }}"
   valves_popp: "{{ valves | select('is_device_attr', 'manufacturer', 'Popp') | list }}"
@@ -1382,7 +1412,7 @@ variables:
     {{ dict.from_keys(n.dict) }}
 
   # COMMON CALIBRATION e.g. TUYA
-  valves_calibration_common: "{{ valves | reject('in', valves_tado + valves_external_sensor) | list }}"
+  valves_calibration_common: "{{ valves | reject('in', valves_tado + valves_external_sensor + valves_xiaomi) | list }}"
   calibration_common: >
     {% set n = namespace(dict=[]) %}
 
@@ -1441,6 +1471,8 @@ condition:
       - condition: template
         value_template: "{{ calibration_tado | count > 0 }}"
       - condition: template
+        value_template: "{{ calibration_xiaomi | count > 0 }}"
+      - condition: template
         value_template: "{{ changes | count > 0 }}"
       - condition: template
         value_template: "{{ is_manual_change or is_manual_timer_start }}"
@@ -1494,6 +1526,8 @@ action:
         changes: {{ changes }} {{ " \n " }}
         valves_tado: {{ valves_tado }} {{ " \n " }}
         calibration_tado: {{ calibration_tado }} {{ " \n " }}
+        valves_xiaomi: {{ valves_tado }} {{ " \n " }}
+        calibration_xiaomi: {{ calibration_tado }} {{ " \n " }}
         valves_external_sensor: {{ valves_external_sensor }} {{ " \n " }}
         calibration_external_sensor: {{ calibration_external_sensor }} {{ " \n " }}
         valves_calibration_common: {{ valves_calibration_common }} {{ " \n " }}
@@ -1567,6 +1601,35 @@ action:
       # COMMON CALIBRATION
       - repeat:
           count: "{{ calibration_common | count | int }}"
+          sequence:
+            - variables:
+                index: "{{ repeat.index-1 }}"
+                calibration_entity: "{{ (calibration_common.keys() | list) [index] }}"
+                thermostat: "{{ (((calibration_common.values() | list) [index]) | first) ['valve'] }}"
+                offset: "{{ (((calibration_common.values() | list) [index]) | first) ['value'] }}"
+
+            - service: system_log.write
+              data:
+                message: >
+                  AHC REF CALIBRATION  {{" \n "}}
+                  calibration entity: {{ calibration_entity }}  {{" \n "}}
+                  offset: {{ offset }}
+                level: debug
+                logger: blueprints.panhans.heatingcontrol
+
+            - service: number.set_value
+              data:
+                value: "{{ float(offset) }}"
+              target:
+                entity_id: "{{ calibration_entity }}"
+            - delay:
+                hours: "{{ input_service_call_delay.hours }}"
+                minutes: "{{ input_service_call_delay.minutes }}"
+                seconds: "{{ input_service_call_delay.seconds }}"
+      
+      # XIAOMI CALIBRATION
+      - repeat:
+          count: "{{ calibration_xiaomi | count | int }}"
           sequence:
             - variables:
                 index: "{{ repeat.index-1 }}"
