@@ -1433,8 +1433,9 @@ variables:
           {% set max_calibration_value = state_attr(calibration_entity,'max') | float %}
           {% set thermostat_temperature = state_attr(valve, 'current_temperature') | float %}
           {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
+          {% set offset_old = states(calibration_entity) | float(0) %}
 
-          {% set new_calibration_value = calibration_sensor_temperature - thermostat_temperature %}
+          {% set new_calibration_value = calibration_sensor_temperature - (thermostat_temperature - offset_old) %}
 
           {% set new_calibration_value = iif(new_calibration_value > max_calibration_value, max_calibration_value, new_calibration_value) %}
           {% set new_calibration_value = iif(new_calibration_value < min_calibration_value, min_calibration_value, new_calibration_value) %}
@@ -1442,7 +1443,7 @@ variables:
           {% set round_size = iif('.' in (step | string) and input_calibration_rounding_full_values == false, (step | string).split('.')[1] | length, 0) %}
 
           {% set offset_new = ((new_calibration_value | float(0) / step) | round(0) * step) | round(round_size) %}
-          {% set offset_old = states(calibration_entity) | float(99) %}
+          
 
           {% if (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) %}
             {% set n.dict = n.dict + [(calibration_entity, [{'value': offset_new, 'valve': valve}])] %}
@@ -1455,6 +1456,8 @@ variables:
 
     {{ dict.from_keys(n.dict) }}
 
+  calibration_number: "{{ dict(dict(calibration_xiaomi, **calibration_external_sensor),**calibration_common) }}"
+
   is_heating: "{{ set_comfort and mode != 'off' }}"
 
 ##################################################
@@ -1465,13 +1468,15 @@ condition:
   - condition: or
     conditions:
       - condition: template
-        value_template: "{{ calibration_common | count > 0 }}"
-      - condition: template
-        value_template: "{{ calibration_external_sensor | count > 0 }}"
+        value_template: "{{ calibration_number | count > 0 }}"
+      # - condition: template
+      #   value_template: "{{ calibration_common | count > 0 }}"
+      # - condition: template
+      #   value_template: "{{ calibration_external_sensor | count > 0 }}"
       - condition: template
         value_template: "{{ calibration_tado | count > 0 }}"
-      - condition: template
-        value_template: "{{ calibration_xiaomi | count > 0 }}"
+      # - condition: template
+      #   value_template: "{{ calibration_xiaomi | count > 0 }}"
       - condition: template
         value_template: "{{ changes | count > 0 }}"
       - condition: template
@@ -1598,44 +1603,15 @@ action:
                   seconds: "{{ input_service_call_delay.seconds }}"
 
     default:
-      # COMMON CALIBRATION
+      # NUMBER CALIBRATION
       - repeat:
-          count: "{{ calibration_common | count | int }}"
+          count: "{{ calibration_number | count | int }}"
           sequence:
             - variables:
                 index: "{{ repeat.index-1 }}"
-                calibration_entity: "{{ (calibration_common.keys() | list) [index] }}"
-                thermostat: "{{ (((calibration_common.values() | list) [index]) | first) ['valve'] }}"
-                offset: "{{ (((calibration_common.values() | list) [index]) | first) ['value'] }}"
-
-            - service: system_log.write
-              data:
-                message: >
-                  AHC REF CALIBRATION  {{" \n "}}
-                  calibration entity: {{ calibration_entity }}  {{" \n "}}
-                  offset: {{ offset }}
-                level: debug
-                logger: blueprints.panhans.heatingcontrol
-
-            - service: number.set_value
-              data:
-                value: "{{ float(offset) }}"
-              target:
-                entity_id: "{{ calibration_entity }}"
-            - delay:
-                hours: "{{ input_service_call_delay.hours }}"
-                minutes: "{{ input_service_call_delay.minutes }}"
-                seconds: "{{ input_service_call_delay.seconds }}"
-      
-      # XIAOMI CALIBRATION
-      - repeat:
-          count: "{{ calibration_xiaomi | count | int }}"
-          sequence:
-            - variables:
-                index: "{{ repeat.index-1 }}"
-                calibration_entity: "{{ (calibration_xiaomi.keys() | list) [index] }}"
-                thermostat: "{{ (((calibration_xiaomi.values() | list) [index]) | first) ['valve'] }}"
-                offset: "{{ (((calibration_xiaomi.values() | list) [index]) | first) ['value'] }}"
+                calibration_entity: "{{ (calibration_number.keys() | list) [index] }}"
+                thermostat: "{{ (((calibration_number.values() | list) [index]) | first) ['valve'] }}"
+                offset: "{{ (((calibration_number.values() | list) [index]) | first) ['value'] }}"
 
             - service: system_log.write
               data:
@@ -1668,25 +1644,6 @@ action:
               data:
                 offset: "{{ offset }}"
                 entity_id: "{{ thermostat }}"
-            - delay:
-                hours: "{{ input_service_call_delay.hours }}"
-                minutes: "{{ input_service_call_delay.minutes }}"
-                seconds: "{{ input_service_call_delay.seconds }}"
-
-      # EXTERNAL SENSOR CALIBRATION
-      - repeat:
-          count: "{{ calibration_external_sensor | count | int }}"
-          sequence:
-            - variables:
-                index: "{{ repeat.index-1 }}"
-                calibration_entity: "{{ (calibration_external_sensor.keys() | list) [index] }}"
-                thermostat: "{{ (((calibration_external_sensor.values() | list) [index]) | first) ['valve'] }}"
-                offset: "{{ (((calibration_external_sensor.values() | list) [index]) | first) ['value'] }}"
-            - service: number.set_value
-              data:
-                value: "{{ offset }}"
-              target:
-                entity_id: "{{ calibration_entity }}"
             - delay:
                 hours: "{{ input_service_call_delay.hours }}"
                 minutes: "{{ input_service_call_delay.minutes }}"
