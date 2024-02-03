@@ -1239,13 +1239,6 @@ variables:
 
   temperature: >
     {% set temp = state_temperature_comfort %}
-
-    {# if is_manual_change #}
-      {# set temp = trigger.to_state.attributes.temperature #}
-    {# elif is_reset #}
-      {# set temp = input_temperature_comfort_static #}
-    {# endif #}
-
     {{ iif(set_comfort, temp, state_temperature_min) }}
 
   # EVLAUATING TRIGGER IDs
