@@ -572,7 +572,7 @@ blueprint:
         boolean: {}
 
     input_aggressive_mode_range:
-      name: ⚙️ Aggressive Mode - Range
+      name: ⚙️ Agressive Mode - Range
       description: >
         Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
         Define a range when your real target temperature shall be set. E.g. you target temperature is 20°C and your room temperature is 19.5°C.
@@ -588,7 +588,7 @@ blueprint:
           unit_of_measurement: °C / °F
 
     input_aggressive_mode_offset:
-      name: ⚙️ Aggressive Mode - Offset
+      name: ⚙️ Agressive Mode - Offset
       description: >
         Here you can define the offset that will be added to your target temperature if the room temperature is not in range of your target temperature.
         If your room temperature is not in the defined range, e.g. 19.5°C - 20.5°C this offset will be added to your target temperature.
@@ -1282,11 +1282,11 @@ variables:
     {% set n = namespace(dict=[]) %}
     {% for valve in input_trvs %}
 
-      {% set current_valve_temp = state_attr(valve, 'current_temperature') %}
-      {% set current_valve_target_temp = state_attr(valve, 'temperature') %}
+      {% set current_valve_temp = state_attr(valve, 'current_temperature') | float %}
+      {% set current_valve_target_temp = state_attr(valve, 'temperature') | float %}
       {% set current_valve_mode = states(valve) %}
-      {% set min_temp = state_attr(valve, 'min_temp') %}
-      {% set max_temp = state_attr(valve, 'max_temp') %}
+      {% set min_temp = state_attr(valve, 'min_temp') | float %}
+      {% set max_temp = state_attr(valve, 'max_temp') | float %}
 
       {% set valve_mode = iif(mode == 'off' and (valve in valves_without_off_mode or input_force_minimum_temperature), 'heat', mode) %}
       {% set valve_temp = temperature %}
@@ -1498,14 +1498,8 @@ condition:
     conditions:
       - condition: template
         value_template: "{{ calibration_number | count > 0 }}"
-      # - condition: template
-      #   value_template: "{{ calibration_common | count > 0 }}"
-      # - condition: template
-      #   value_template: "{{ calibration_external_sensor | count > 0 }}"
       - condition: template
         value_template: "{{ calibration_tado | count > 0 }}"
-      # - condition: template
-      #   value_template: "{{ calibration_xiaomi | count > 0 }}"
       - condition: template
         value_template: "{{ changes | count > 0 }}"
       - condition: template
@@ -1595,7 +1589,7 @@ action:
               - variables:
                   max_comfort_temp: "{{ state_attr(input_temperature_comfort,'max') | float }}"
                   min_comfort_temp: "{{ state_attr(input_temperature_comfort,'min') | float }}"
-                  new_manual_temp: "{{ trigger.to_state.attributes.temperature }}"
+                  new_manual_temp: "{{ trigger.to_state.attributes.temperature | float }}"
                   real_manual_temp: >
                     {% if (new_manual_temp > max_comfort_temp) %}
                       {{ max_comfort_temp }}
