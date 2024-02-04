@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_ref5
+    **Version**: 4.0_ref6
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -135,23 +135,23 @@ blueprint:
           multiple: false
 
     # input_time_based_temperature_change_valve_target:
-    #   name: 📈 Comfort Heating Plan (optional)
-    #   description: >
-    #     Define you comfort temperature plan. You need to provide an *input_number* for your comfort temperature. Then you can setup a heating plan like this:
+    # name: 📈 Comfort Heating Plan (optional)
+    # description: >
+    #   Define you comfort temperature plan. You need to provide an *input_number* for your comfort temperature. Then you can setup a heating plan like this:
 
-    #     ```yaml
+    #   ```yaml
 
-    #     - time: "08:00"
-    #       temp: "22"
-    #     - time: "16:00"
-    #       temp: "20"
-    #     - time: "20:00"
-    #       temp: "24"
-    #     ```
+    #   - time: "08:00"
+    #     temp: "22"
+    #   - time: "16:00"
+    #     temp: "20"
+    #   - time: "20:00"
+    #     temp: "24"
+    #   ```
 
-    #   selector:
-    #     object:
-    #   default: "[]"
+    # selector:
+    #   object:
+    # default: "[]"
 
     # P E R S O N S
     input_persons:
@@ -571,14 +571,35 @@ blueprint:
       selector:
         boolean: {}
 
-    input_aggressive_mode:
-      name: ⚙️ Agressive Mode
+    input_aggressive_mode_range:
+      name: ⚙️ Agressive Mode - Range
       description: >
         Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
-        When activated the target temperature of your vavles will set to max or min until it matches the real target temperature +/- 0.5 °C / 1 °F.
-      default: false
+        Define a range when your real target temperature shall be set. E.g. you target temperature is 20°C and your room temperature is 19.5°C.
+        If your range is set to 0.5°C the real target temperature (20°C) will be set when room temperature is between 19.5°C and 20.5°C.
+        If the room temperature is above or lower that range it gets some offset in order to force your thermostat to react. (see Aggressive Mode - Offset)
+      default: 0
       selector:
-        boolean: {}
+        number:
+          min: 0
+          max: 5
+          step: 0.1
+          mode: slider
+          unit_of_measurement: °C / °F
+
+    input_aggressive_mode_offset:
+      name: ⚙️ Agressive Mode - Offset
+      description: >
+        Here you can define the offset that will be added to your target temperature if the room temperature is not in range of your target temperature.
+        If your room temperature is not in the defined range, e.g. 19.5°C - 20.5°C this offset will be added to your target temperature.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.5
+          mode: slider
+          unit_of_measurement: °C / °F
 
     input_service_call_delay:
       name: ⚙️ Service Call Delay
@@ -1017,7 +1038,8 @@ variables:
   input_service_call_delay: !input input_service_call_delay
   input_calibration_generic: !input input_calibration_generic
   input_not_heat_but_auto: !input input_not_heat_but_auto
-  input_aggressive_mode: !input input_aggressive_mode
+  input_aggressive_mode_offset: !input input_aggressive_mode_offset
+  input_aggressive_mode_range: !input input_aggressive_mode_range
   input_custom_action: !input input_custom_action
 
   # V A L V E   G R O U P S
@@ -1249,6 +1271,13 @@ variables:
       input_temperature_sensor != none
     }}
 
+  # ------------------------------------------------------------------------------------
+  # ----------------------------- TIME BASED MODIFIERS ---------------------------------
+  # ------------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------------
+  # ----------------------------- CHANGES & CALIBRATION --------------------------------
+  # ------------------------------------------------------------------------------------
   changes: >
     {% set n = namespace(dict=[]) %}
     {% for valve in input_trvs %}
@@ -1288,14 +1317,21 @@ variables:
           {% endif %}
         {% endif %}
 
-        {% if input_aggressive_mode %}
+        {% if input_aggressive_mode_range > 0 and input_aggressive_mode_offset > 0 %}
           {% set temp_diff = valve_temp - current_valve_temp %}
 
-          {% if temp_diff < -0.5 %}
+          {% if temp_diff < input_aggressive_mode_range * -1 %}
+            {% set valve_temp = valve_temp - input_aggressive_mode_offset %}
+          {% elif temp_diff > input_aggressive_mode_range %}
+            {% set valve_temp = valve_temp + input_aggressive_mode_offset %}
+          {% endif %}
+
+          {% if valve_temp < min_temp %}
             {% set valve_temp = min_temp %}
-          {% elif temp_diff > 0.5 %}
+          {% elif valve_temp > max_temp %}
             {% set valve_temp = max_temp %}
           {% endif %}
+
         {% endif %}
 
       {% endif %}
