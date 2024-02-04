@@ -572,7 +572,7 @@ blueprint:
         boolean: {}
 
     input_aggressive_mode_range:
-      name: ⚙️ Agressive Mode - Range
+      name: ⚙️ Aggressive Mode - Range
       description: >
         Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
         Define a range when your real target temperature shall be set. E.g. you target temperature is 20°C and your room temperature is 19.5°C.
@@ -588,7 +588,7 @@ blueprint:
           unit_of_measurement: °C / °F
 
     input_aggressive_mode_offset:
-      name: ⚙️ Agressive Mode - Offset
+      name: ⚙️ Aggressive Mode - Offset
       description: >
         Here you can define the offset that will be added to your target temperature if the room temperature is not in range of your target temperature.
         If your room temperature is not in the defined range, e.g. 19.5°C - 20.5°C this offset will be added to your target temperature.
