@@ -546,6 +546,36 @@ blueprint:
       selector:
         boolean: {}
 
+    input_aggressive_mode_range:
+      name: 😡 Agressive Mode - Range
+      description: >
+        Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
+        Define a range when your real target temperature shall be set. E.g. you target temperature is 20°C and your room temperature is 19.5°C.
+        If your range is set to 0.5°C the real target temperature (20°C) will be set when room temperature is between 19.5°C and 20.5°C.
+        If the room temperature is above or lower that range it gets some offset in order to force your thermostat to react. (see Aggressive Mode - Offset)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.1
+          mode: slider
+          unit_of_measurement: °C / °F
+
+    input_aggressive_mode_offset:
+      name: 😡 Agressive Mode - Offset
+      description: >
+        Here you can define the offset that will be added to your target temperature if the room temperature is not in range of your target temperature.
+        If your room temperature is not in the defined range, e.g. 19.5°C - 20.5°C this offset will be added to your target temperature.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.5
+          mode: slider
+          unit_of_measurement: °C / °F
+
     input_off_instead_min:
       name: ⚙️ Off Instead Of Minimum Temperature
       description: >
@@ -570,36 +600,6 @@ blueprint:
       default: false
       selector:
         boolean: {}
-
-    input_aggressive_mode_range:
-      name: ⚙️ Agressive Mode - Range
-      description: >
-        Activate this option if your valves react slowly or only start to react at a large temperature difference between actual and set temperature.
-        Define a range when your real target temperature shall be set. E.g. you target temperature is 20°C and your room temperature is 19.5°C.
-        If your range is set to 0.5°C the real target temperature (20°C) will be set when room temperature is between 19.5°C and 20.5°C.
-        If the room temperature is above or lower that range it gets some offset in order to force your thermostat to react. (see Aggressive Mode - Offset)
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 5
-          step: 0.1
-          mode: slider
-          unit_of_measurement: °C / °F
-
-    input_aggressive_mode_offset:
-      name: ⚙️ Agressive Mode - Offset
-      description: >
-        Here you can define the offset that will be added to your target temperature if the room temperature is not in range of your target temperature.
-        If your room temperature is not in the defined range, e.g. 19.5°C - 20.5°C this offset will be added to your target temperature.
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 5
-          step: 0.5
-          mode: slider
-          unit_of_measurement: °C / °F
 
     input_service_call_delay:
       name: ⚙️ Service Call Delay
