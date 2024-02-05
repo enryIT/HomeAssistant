@@ -153,9 +153,12 @@ blueprint:
 
         - time: "08:00"
           temp: "22"
+          calibration: "off"
         - time: "16:00"
           temp: "20"
+          calibration: "on"
         - time: "20:00"
+          day: Sun
           temp: "24"
         ```
 
