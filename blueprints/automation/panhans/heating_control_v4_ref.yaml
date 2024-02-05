@@ -1282,11 +1282,11 @@ variables:
     {% set n = namespace(dict=[]) %}
     {% for valve in input_trvs %}
 
-      {% set current_valve_temp = state_attr(valve, 'current_temperature') | float %}
-      {% set current_valve_target_temp = state_attr(valve, 'temperature') | float %}
+      {% set current_valve_temp = state_attr(valve, 'current_temperature') | float(20) %}
+      {% set current_valve_target_temp = state_attr(valve, 'temperature') | float(temperature) %}
       {% set current_valve_mode = states(valve) %}
-      {% set min_temp = state_attr(valve, 'min_temp') | float %}
-      {% set max_temp = state_attr(valve, 'max_temp') | float %}
+      {% set min_temp = state_attr(valve, 'min_temp') | float(5) %}
+      {% set max_temp = state_attr(valve, 'max_temp') | float(30) %}
 
       {% set valve_mode = iif(mode == 'off' and (valve in valves_without_off_mode or input_force_minimum_temperature), 'heat', mode) %}
       {% set valve_temp = temperature %}
