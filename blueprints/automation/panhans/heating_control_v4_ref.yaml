@@ -1107,18 +1107,7 @@ variables:
   is_person_based: "{{ input_mode_guest != none or input_persons | count > 0 }}"
   is_anybody_home: "{{ expand(input_persons) | selectattr('state', 'eq', 'home') | list | count > 0 or state_mode_guest }}"
 
-  # Proximity
-  is_somebody_on_way_home_state: >
-    {% set arrived = expand(input_proximity) | selectattr('attributes.dir_of_travel', 'eq', 'arrived') | list | count | float(0) > float(0) %}
-    {% set towards = expand(input_proximity)
-                | selectattr('attributes.dir_of_travel', 'eq', 'towards')
-                | map(attribute='state')
-                | map('float',default=0)
-                | select('<=',input_proximity_distance)
-                | map(attribute='entity_id')
-                | list | count > 0 %}
-
-    {{ arrived == true or towards == true}}
+  
 
   # Presence Configuration
   is_presence_sensor_defined: "{{ input_presence_sensor != none }}"
@@ -1139,6 +1128,19 @@ variables:
 
   is_scheduled_heating_on: >
     {{ iif(is_person_based, state_scheduler and is_anybody_home, state_scheduler) }}
+
+  # Proximity
+  is_somebody_on_way_home_state: >
+    {% set arrived = expand(input_proximity) | selectattr('attributes.dir_of_travel', 'eq', 'arrived') | list | count | float(0) > float(0) %}
+    {% set towards = expand(input_proximity)
+                | selectattr('attributes.dir_of_travel', 'eq', 'towards')
+                | map(attribute='state')
+                | map('float',default=0)
+                | select('<=',input_proximity_distance)
+                | map(attribute='entity_id')
+                | list | count > 0 %}
+
+    {{ (is_scheduled_heating == false and is_presence_sensor_defined == false and arrived == true) or towards == true}}
 
   is_somebody_on_way_home: >
     {% if is_somebody_on_way_home_state == false %}
