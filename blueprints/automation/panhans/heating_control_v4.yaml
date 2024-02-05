@@ -1,5 +1,5 @@
 blueprint:
-  name: Advanced Heating Control v4 Ref
+  name: Advanced Heating Control v4
   author: panhans
   description: "
 
@@ -38,7 +38,7 @@ blueprint:
 
     ✅ frost protection temp if people not home or presence sensor wasn't on for specific duration
 
-    ✅ adjustable aggressive mode
+    ✅ aggressive mode
 
     ✅ custom actions when switching between heat and min
 
@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta1
+    **Version**: 4.0_beta11
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -134,24 +134,34 @@ blueprint:
                 - input_number
           multiple: false
 
-    # input_time_based_temperature_change_valve_target:
-    # name: 📈 Comfort Heating Plan (optional)
-    # description: >
-    #   Define you comfort temperature plan. You need to provide an *input_number* for your comfort temperature. Then you can setup a heating plan like this:
+    input_time_based_temperature_change_valve_target:
+      name: 📈 Heating Schedule Adjustments (optional)
+      description: >
+        Here you can setup some adjustments to your heating schedule. What's possibible until now?
+        <br/>
 
-    #   ```yaml
+        **time**  ➡️ timestamp when the adjustment should kick in (required) <br/>
+        **day**   ➡️ Mon,Tue,Wed,Thu,Fri,Sat,Sun <br/>
+        **temp**  ➡️ comfort temperature <br/>
+        **calibration** ➡️ on/off <br/>
+        <br/>
 
-    #   - time: "08:00"
-    #     temp: "22"
-    #   - time: "16:00"
-    #     temp: "20"
-    #   - time: "20:00"
-    #     temp: "24"
-    #   ```
+        You can adjust your temperature by your comfort temperature entity. It will get overwritten if a new adjustment entry gets into the game or after a home assistant restart.
+        <br/>
 
-    # selector:
-    #   object:
-    # default: "[]"
+        ```yaml
+
+        - time: "08:00"
+          temp: "22"
+        - time: "16:00"
+          temp: "20"
+        - time: "20:00"
+          temp: "24"
+        ```
+
+      selector:
+        object:
+      default: "[]"
 
     # P E R S O N S
     input_persons:
@@ -657,7 +667,7 @@ trigger_variables:
 
   input_temperature_comfort: !input input_temperature_comfort
   input_temperature_minimum: !input input_temperature_minimum
-  # input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
+  input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
 
   # S C H E D U L E R
   input_schedulers: !input input_schedulers
@@ -954,9 +964,9 @@ trigger:
     attribute: current_temperature
 
   # C O M F O R T   T E M P   C H A N G E   B Y   T I M E
-  # - platform: template
-  #   id: temperature_comfort_change_time_based
-  #   value_template: "{{ now().strftime('%H:%M') in (input_time_based_temperature_change_valve_target | map(attribute='time') | list) }}"
+  - platform: template
+    id: temperature_comfort_change_time_based
+    value_template: "{{ now().strftime('%H:%M') in (input_time_based_temperature_change_valve_target | map(attribute='time') | list) }}"
 
   # F R O S T   P R O T E C T I O N
   - platform: template
@@ -1034,7 +1044,7 @@ variables:
   input_reset_comfort_temperature: !input input_reset_comfort_temperature
   input_start_party_timer_on_physical_change: !input input_start_party_timer_on_physical_change
   input_calibration_rounding_full_values: !input input_calibration_rounding_full_values
-  # input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
+  input_time_based_temperature_change_valve_target: !input input_time_based_temperature_change_valve_target
   input_service_call_delay: !input input_service_call_delay
   input_calibration_generic: !input input_calibration_generic
   input_not_heat_but_auto: !input input_not_heat_but_auto
@@ -1071,13 +1081,6 @@ variables:
 
   state_force_max_temperature: "{{ input_force_max_temperature != none and is_state(input_force_max_temperature, 'on') }}"
   state_window: "{{ expand(input_windows) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
-
-  state_temperature_comfort: >
-    {% if input_temperature_comfort != none %}
-      {{ states(input_temperature_comfort) }}
-    {% else %}
-      {{ input_temperature_comfort_static }}
-    {% endif %}
 
   active_scheduler: >
     {% set selected_scheduler = none %}
@@ -1261,10 +1264,6 @@ variables:
       input_reset_comfort_temperature == true
     }}
 
-  temperature: >
-    {% set temp = state_temperature_comfort %}
-    {{ iif(set_comfort, temp, state_temperature_min) }}
-
   # EVLAUATING TRIGGER IDs
   is_calibration: >
     {{
@@ -1277,9 +1276,87 @@ variables:
   # ----------------------------- TIME BASED MODIFIERS ---------------------------------
   # ------------------------------------------------------------------------------------
 
+  entry: >
+    {% set plan = input_time_based_temperature_change_valve_target | rejectattr('time', 'undefined') | list %}
+    {% set current_time = now().replace(second=0,microsecond=0) %}
+    {% set result =  namespace(r=none)%}
+    {% for e in plan %}
+
+      {% set e_time = e['time']%}
+      {% set e_time_h = e['time'].split(':')[0] | int %}
+      {% set e_time_m = e['time'].split(':')[1] | int %}
+      {% set entry_time = now().replace(hour=e_time_h,minute=e_time_m,second=0,microsecond=0) %}
+
+      {% if entry_time <= current_time %}
+        {% if result.r == none %}
+          {% set result.r = e %}
+        {% else %}
+          {% set e_time_h_old = result.r['time'].split(':')[0] | int %}
+          {% set e_time_m_old = result.r['time'].split(':')[1] | int %}
+          {% set entry_time_old = now().replace(hour=e_time_h_old,minute=e_time_m_old,second=0,microsecond=0) %}
+
+          {% if entry_time > entry_time_old %}
+            {% set result.r = e %}
+          {% endif %}
+
+        {% endif %}
+      {% endif %}
+
+    {% endfor %}
+
+    {{ result.r }}
+
+  entry_time: >
+    {% if (entry is defined) and entry  %}
+      {% set entry_hour = entry['time'].split(':')[0] | int %}
+      {% set entry_minute = entry['time'].split(':')[1] | int %}
+      {{ now().replace(hour=entry_hour, minute=entry_minute, second=0, microsecond=0) }}
+    {% endif %}
+
+  entry_comfort_temp: >
+    {% if (entry is defined) and entry and 'temp' in entry.keys() %}
+      {{ entry['temp'] }}
+    {% endif %}
+
+  entry_calibration: >
+    {% if (entry is defined) and entry and 'calibration' in entry.keys() %}
+      {{ entry['calibration'] == 'on' }}
+    {% endif %}
+
+  new_comfort_temperature: >
+    {% if trigger.id == 'hastart' and entry_comfort_temp != none %}
+      {{ entry_comfort_temp }}
+    {% elif entry_comfort_temp != none and input_temperature_comfort == none %}
+        {{ entry_comfort_temp }}
+    {% elif entry_comfort_temp != none and 
+            input_temperature_comfort != none and 
+            as_timestamp(states.input_number[input_temperature_comfort.split('.')[1]].last_changed) < as_timestamp(entry_time,0) %}
+      {{ entry_comfort_temp }}
+    {% endif %}
+    
   # ------------------------------------------------------------------------------------
   # ----------------------------- CHANGES & CALIBRATION --------------------------------
   # ------------------------------------------------------------------------------------
+  
+  is_refresh_comfort_entity: >
+    {{ input_temperature_comfort != none and 
+        (new_comfort_temperature is defined) and
+        new_comfort_temperature and
+        new_comfort_temperature | float != states(input_temperature_comfort) | float }}
+
+  state_temperature_comfort: >
+    {% if input_temperature_comfort != none %}
+      {{ states(input_temperature_comfort) }}
+    {% elif((new_comfort_temperature is defined) and new_comfort_temperature) %}
+        {{ new_comfort_temperature }}
+    {% else %}
+      {{ input_temperature_comfort_static }}
+    {% endif %}
+
+  temperature: >
+    {% set temp = state_temperature_comfort %}
+    {{ iif(set_comfort, temp, state_temperature_min) }}
+  
   changes: >
     {% set n = namespace(dict=[]) %}
     {% for valve in input_trvs %}
@@ -1362,7 +1439,7 @@ variables:
   calibration_tado: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
       {% for valve in valves_tado %}
 
         {% set offset_old = state_attr(valve, iif(is_metric, 'offset_celsius', 'offset_fahrenheit')) | float %}
@@ -1388,7 +1465,7 @@ variables:
   calibration_xiaomi: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
       {% for valve in valves_xiaomi %}
 
         {% set calibration_entities = device_entities(device_id(valve)) |
@@ -1419,7 +1496,7 @@ variables:
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
-    {% if is_calibration and input_calibration_generic == false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
       
       {% for valve in valves_external_sensor %}
 
@@ -1447,7 +1524,7 @@ variables:
   calibration_common: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
       
       {% for valve in valves_calibration_common %}
 
@@ -1495,19 +1572,21 @@ variables:
 ########### C O N D I T I O N S ##################
 ##################################################
 
-condition:
-  - condition: or
-    conditions:
-      - condition: template
-        value_template: "{{ calibration_number | count > 0 }}"
-      - condition: template
-        value_template: "{{ calibration_tado | count > 0 }}"
-      - condition: template
-        value_template: "{{ changes | count > 0 }}"
-      - condition: template
-        value_template: "{{ is_manual_change or is_manual_timer_start }}"
-      - condition: template
-        value_template: "{{ is_reset }}"
+  condition:
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: "{{ calibration_number | count > 0 }}"
+        - condition: template
+          value_template: "{{ calibration_tado | count > 0 }}"
+        - condition: template
+          value_template: "{{ changes | count > 0 }}"
+        - condition: template
+          value_template: "{{ is_manual_change or is_manual_timer_start }}"
+        - condition: template
+          value_template: "{{ is_reset }}"
+        - condition: template
+          value_template: "{{ is_refresh_comfort_entity }}"
 
 ##################################################
 ################## A C T I O N ###################
@@ -1525,6 +1604,11 @@ action:
     data:
       message: >
         AHC REF  {{" \n "}}
+        entry: {{ entry }} {{ " \n " }}
+        entry_time: {{ entry_time }} {{ " \n " }}
+        entry_comfort_temp: {{ entry_comfort_temp }} {{ " \n " }}
+        new_comfort_temperature: {{ new_comfort_temperature }} {{ " \n " }}
+        is_refresh_comfort_entity: {{ is_refresh_comfort_entity }} {{ " \n " }}
         state_mode_winter: {{ state_mode_winter }} {{ " \n " }}
         state_mode_party: {{ state_mode_party }} {{ " \n " }}
         state_mode_guest: {{ state_mode_guest }} {{ " \n " }}
@@ -1582,16 +1666,21 @@ action:
       # MANUAL CHANGE / TIMER START
       - conditions:
           - condition: template
-            value_template: "{{ is_manual_change or is_manual_timer_start }}"
+            value_template: "{{ is_manual_change or is_manual_timer_start or is_refresh_comfort_entity }}"
         sequence:
           - if:
               - condition: template
-                value_template: "{{ is_manual_change }}"
+                value_template: "{{ is_manual_change or is_refresh_comfort_entity }}"
             then:
               - variables:
                   max_comfort_temp: "{{ state_attr(input_temperature_comfort,'max') | float }}"
                   min_comfort_temp: "{{ state_attr(input_temperature_comfort,'min') | float }}"
-                  new_manual_temp: "{{ trigger.to_state.attributes.temperature | float }}"
+                  new_manual_temp: >
+                    {% if is_refresh_comfort_entity %}
+                      {{ new_comfort_temperature }}
+                    {% else %}
+                      {{ trigger.to_state.attributes.temperature }}
+                    {% endif %}
                   real_manual_temp: >
                     {% if (new_manual_temp > max_comfort_temp) %}
                       {{ max_comfort_temp }}
