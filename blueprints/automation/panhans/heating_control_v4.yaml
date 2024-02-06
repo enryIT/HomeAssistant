@@ -979,7 +979,7 @@ trigger:
       {% if all_valves | count == 0 or input_temperature_sensor == none %}
         {{ false }}
       {% else %}
-        {{ now().strftime('%M') | int % 15 == 0 }}
+        {{ now().strftime('%M') | int % 10 == 0 }}
       {% endif %}
 
   - platform: template
@@ -1568,7 +1568,7 @@ variables:
 
         {% if is_periodical_popp_calibration %}
           {% set last_updated = [calibration_entity] | expand | map(attribute='last_updated') | first %}
-          {% set update_calibration = now() - timedelta(minutes=20) > last_updated %}
+          {% set update_calibration = now() - timedelta(minutes=20) >= last_updated %}
         {% endif %}
 
         {% if is_difference_popp_calibration %}
