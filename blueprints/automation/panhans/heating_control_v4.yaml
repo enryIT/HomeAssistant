@@ -1513,7 +1513,7 @@ variables:
       
       {% for valve in valves_external_sensor %}
 
-        {% set calibration_entity = device_entities(device_id(valves[0])) |
+        {% set calibration_entity = device_entities(device_id(valve)) |
                                     expand | selectattr('domain','in','number') |
                                     selectattr('entity_id', 'search', 'external') |
                                     map(attribute='entity_id') | first %}
