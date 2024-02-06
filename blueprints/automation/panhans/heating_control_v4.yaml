@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta14
+    **Version**: 4.0_beta15
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -982,38 +982,6 @@ trigger:
         {{ now().strftime('%M') | int % 10 == 0 }}
       {% endif %}
 
-  - platform: template
-    id: calibration_popp_difference
-    value_template: >
-      {% set has_valves_danfoss = input_trvs | select('is_device_attr', 'manufacturer', 'Danfoss') | list  %}
-      {% set has_valves_popp = input_trvs | select('is_device_attr', 'manufacturer', 'Popp') | list %}
-      {% set valves_hive = input_trvs | select('is_device_attr', 'manufacturer', 'Hive') | list %}
-
-      {% set all_valves = has_valves_danfoss + has_valves_popp + valves_hive %}
-
-      {% if all_valves | count == 0 or input_temperature_sensor == none %}
-        {{ false }}
-      {% else %}
-        {% set external_temp = (states(input_temperature_sensor) | float * 100) | int %}
-
-        {% set is_difference = false %}
-
-        {% for valve in all_valves %}
-          {% set calibration_entity = device_entities(device_id(valve)) |
-                                      expand | selectattr('domain','in','number') |
-                                      selectattr('entity_id', 'search', 'external') |
-                                      map(attribute='entity_id') | first %}
-
-          {% set old_value = states(calibration_entity) | int %}
-
-          {% set is_difference = iif(is_difference == true, true, old_value != external_temp) %}
-        {% endfor %}
-
-        {{ is_difference == true }}
-      {% endif %}
-
-      
-
   # C O M F O R T   T E M P   C H A N G E   B Y   T I M E
   - platform: template
     id: temperature_comfort_change_time_based
@@ -1547,7 +1515,7 @@ variables:
     {{ trigger.id in ['calibration_popp_ping','hastart','reload'] }}
 
   is_difference_popp_calibration: >
-    {{ trigger.id in ['calibration_popp_difference'] }}
+    {{ trigger.id in ['calibration_sensor_temperature_change'] }}
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
