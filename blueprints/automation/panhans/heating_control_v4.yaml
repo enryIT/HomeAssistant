@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta13
+    **Version**: 4.0_beta14
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -968,12 +968,51 @@ trigger:
     attribute: current_temperature
 
   - platform: template
-    id: calibration_periodical
+    id: calibration_popp_ping
     value_template: >
-      {% set has_valves_danfoss = input_trvs | select('is_device_attr', 'manufacturer', 'Danfoss') | list | count > 0 %}
-      {% set has_valves_popp = input_trvs | select('is_device_attr', 'manufacturer', 'Popp') | list | count > 0 %}
-      {% set valves_hive = input_trvs | select('is_device_attr', 'manufacturer', 'Hive') | list | count > 0 %}
-      {{ has_valves_danfoss or has_valves_popp or valves_hive and now().strftime('%M') | int % 30 == 0 }}
+      {% set has_valves_danfoss = input_trvs | select('is_device_attr', 'manufacturer', 'Danfoss') | list  %}
+      {% set has_valves_popp = input_trvs | select('is_device_attr', 'manufacturer', 'Popp') | list %}
+      {% set valves_hive = input_trvs | select('is_device_attr', 'manufacturer', 'Hive') | list %}
+
+      {% set all_valves = has_valves_danfoss + has_valves_popp + valves_hive %}
+
+      {% if all_valves | count == 0 or input_temperature_sensor == none %}
+        {{ false }}
+      {% else %}
+        {{ now().strftime('%M') | int % 15 == 0 }}
+      {% endif %}
+
+  - platform: template
+    id: calibration_popp_difference
+    value_template: >
+      {% set has_valves_danfoss = input_trvs | select('is_device_attr', 'manufacturer', 'Danfoss') | list  %}
+      {% set has_valves_popp = input_trvs | select('is_device_attr', 'manufacturer', 'Popp') | list %}
+      {% set valves_hive = input_trvs | select('is_device_attr', 'manufacturer', 'Hive') | list %}
+
+      {% set all_valves = has_valves_danfoss + has_valves_popp + valves_hive %}
+
+      {% if all_valves | count == 0 or input_temperature_sensor == none %}
+        {{ false }}
+      {% else %}
+        {% set external_temp = (states(input_temperature_sensor) | float * 100) | int %}
+
+        {% set is_difference = false %}
+
+        {% for valve in all_valves %}
+          {% set calibration_entity = device_entities(device_id(valve)) |
+                                      expand | selectattr('domain','in','number') |
+                                      selectattr('entity_id', 'search', 'external') |
+                                      map(attribute='entity_id') | first %}
+
+          {% set old_value = states(calibration_entity) | int %}
+
+          {% set is_difference = iif(is_difference == true, true, old_value != external_temp) %}
+        {% endfor %}
+
+        {{ is_difference }}
+      {% endif %}
+
+      
 
   # C O M F O R T   T E M P   C H A N G E   B Y   T I M E
   - platform: template
@@ -1504,12 +1543,15 @@ variables:
   valves_hive: "{{ valves | select('is_device_attr', 'manufacturer', 'Hive') | list }}"
   valves_external_sensor: "{{ valves_danfoss + valves_popp + valves_hive }}"
 
-  periodical_calibration: >
-    {{ trigger.id in ['calibration_periodical','hastart','reload'] }}
+  is_periodical_popp_calibration: >
+    {{ trigger.id in ['calibration_popp_ping','hastart','reload'] }}
+
+  is_difference_popp_calibration: >
+    {{ trigger.id in ['calibration_popp_difference'] }}
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
-    {% if periodical_calibration and input_calibration_generic == false and entry_calibration != false %}
+    {% if (is_periodical_popp_calibration or is_difference_popp_calibration) and input_calibration_generic == false and entry_calibration != false %}
       
       {% for valve in valves_external_sensor %}
 
@@ -1517,11 +1559,25 @@ variables:
                                     expand | selectattr('domain','in','number') |
                                     selectattr('entity_id', 'search', 'external') |
                                     map(attribute='entity_id') | first %}
-
+    
         {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
         {% set new_state = (calibration_sensor_temperature | float(0) * 100) | int %}
+        {% set old_state = states(calibration_entity) | int %}
 
-        {% set n.dict = n.dict + [(calibration_entity, [{'value': new_state, 'valve': valve}])] %}
+        {% set update_calibration = false %}
+
+        {% if is_periodical_popp_calibration %}
+          {% set last_updated = [calibration_entity] | expand | map(attribute='last_updated') | first %}
+          {% set update_calibration = now() - timedelta(minutes=30) <= last_updated %}
+        {% endif %}
+
+        {% if is_difference_popp_calibration %}
+          {% set update_calibration = old_state != new_state %}
+        {% endif %}
+        
+        {% if update_calibration %}
+          {% set n.dict = n.dict + [(calibration_entity, [{'value': new_state, 'valve': valve}])] %}
+        {% endif%}
 
       {% endfor %}
     {% endif %}
