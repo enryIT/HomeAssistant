@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta12
+    **Version**: 4.0_beta13
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1426,7 +1426,7 @@ variables:
       {% endif %}
 
 
-      {% if current_valve_mode != valve_mode or current_valve_target_temp != valve_temp %}
+      {% if current_valve_mode != valve_mode or (current_valve_target_temp != valve_temp and mode != 'off') %}
         {% set n.dict = n.dict + [(valve, [{'mode': valve_mode , 'temp': valve_temp}])] %}
       {% endif %}
 
