@@ -1568,7 +1568,7 @@ variables:
 
         {% if is_periodical_popp_calibration %}
           {% set last_updated = [calibration_entity] | expand | map(attribute='last_updated') | first %}
-          {% set update_calibration = now() - timedelta(minutes=30) <= last_updated %}
+          {% set update_calibration = now() - timedelta(minutes=20) > last_updated %}
         {% endif %}
 
         {% if is_difference_popp_calibration %}
