@@ -1009,7 +1009,7 @@ trigger:
           {% set is_difference = iif(is_difference == true, true, old_value != external_temp) %}
         {% endfor %}
 
-        {{ is_difference }}
+        {{ is_difference == true }}
       {% endif %}
 
       
