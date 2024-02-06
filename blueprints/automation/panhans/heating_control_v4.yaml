@@ -1519,8 +1519,6 @@ variables:
                                     map(attribute='entity_id') | first %}
 
         {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
-
-        {% set old_state = states(calibration_entity) | float %}
         {% set new_state = (calibration_sensor_temperature | float(0) * 100) | int %}
 
         {% set n.dict = n.dict + [(calibration_entity, [{'value': new_state, 'valve': valve}])] %}
