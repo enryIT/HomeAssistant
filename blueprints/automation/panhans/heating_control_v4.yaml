@@ -1592,6 +1592,13 @@ variables:
                                     map(attribute='entity_id') | list %}
 
         {% if calibration_entities | count > 0 %}
+          {% set calibration_entities = device_entities(device_id(valve)) |
+                                    expand | selectattr('domain','in','number') |
+                                    selectattr('entity_id', 'search', 'calibration') |
+                                    map(attribute='entity_id') | list %}
+        {% endif %}
+
+        {% if calibration_entities | count > 0 %}
 
           {% set calibration_entity = calibration_entities | first %}
           {% set step = state_attr(calibration_entity, 'step') | float %}
