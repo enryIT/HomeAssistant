@@ -1608,7 +1608,7 @@ variables:
           
           {% set round_size = iif('.' in (step | string) and input_calibration_rounding_full_values == false, (step | string).split('.')[1] | length, 0) %}
 
-          {% set offset_new = ((new_calibration_value | float(0) / step) | round(0) * step) | round(round_size) %}
+          {% set offset_new = ((new_calibration_value | float(0) / step) | round(0) * step) | round(round_size) | float %}
           
 
           {% if (float(offset_old) - float(offset_new)) | abs >= float(input_calibration_delta) %}
