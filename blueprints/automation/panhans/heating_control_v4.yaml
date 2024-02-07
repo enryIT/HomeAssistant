@@ -55,7 +55,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_beta16
+    **Version**: 4.0_beta17
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -656,6 +656,19 @@ blueprint:
       default: false
       selector:
         boolean: {}
+
+    input_log_level:
+      name: ✍️ Log Level
+      description: ""
+      default: debug
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - info
+            - warning
+            - error
+            - debug
 
 ##################################################
 ############### T R I G G E R ####################
@@ -1539,7 +1552,7 @@ variables:
                                     expand | selectattr('domain','in','number') |
                                     selectattr('entity_id', 'search', 'external') |
                                     map(attribute='entity_id') | first %}
-    
+
         {% set calibration_sensor_temperature = states(input_temperature_sensor) | float %}
         {% set new_state = (calibration_sensor_temperature | float(0) * 100) | int %}
         {% set old_state = states(calibration_entity) | int %}
@@ -1693,7 +1706,7 @@ action:
         calibration_common: {{ calibration_common }} {{ " \n " }}
         is_heating: {{ is_heating }} {{ " \n " }}
         is_metric: {{ is_heating }} {{ " \n " }}
-      level: debug
+      level: !input input_log_level
       logger: blueprints.panhans.heatingcontrol
 
   - choose:
@@ -1778,7 +1791,7 @@ action:
                   AHC REF CALIBRATION  {{" \n "}}
                   calibration entity: {{ calibration_entity }}  {{" \n "}}
                   offset: {{ offset }}
-                level: debug
+                level: !input input_log_level
                 logger: blueprints.panhans.heatingcontrol
 
             - service: number.set_value
@@ -1815,7 +1828,7 @@ action:
             AHC REF  {{" \n "}}
             change_count: {{ changes | count | int }}  {{" \n "}}
             changes: {{ changes }}
-          level: debug
+          level: !input input_log_level
           logger: blueprints.panhans.heatingcontrol
       - repeat:
           count: "{{ changes | count | int }}"
@@ -1832,14 +1845,14 @@ action:
                   mode: {{ mode }}
                   new_target: {{ target_temperature }}
                   current_target: {{ state_attr(thermostat,'temperature') }}
-                level: debug
+                level: !input input_log_level
                 logger: blueprints.panhans.heatingcontrol
 
             - service: system_log.write
               data:
                 message: >
                   AHC REF CHANGES: {{ thermostat }} -> {{ mode }} -> {{ target_temperature }}
-                level: debug
+                level: !input input_log_level
                 logger: blueprints.panhans.heatingcontrol
 
             - if:
