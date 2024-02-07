@@ -968,6 +968,15 @@ trigger:
     attribute: current_temperature
 
   - platform: template
+    id: calibration_popp_change
+    value_template: >
+      {% if input_temperature_sensor != none %}
+        {{ (now() - states.sensor[input_temperature_sensor.split('.')[1]].last_updated) >= timedelta(hours=0, minutes=0, seconds=2) }}
+      {% else %}
+        {{ false }}
+      {% endif %}
+
+  - platform: template
     id: calibration_popp_ping
     value_template: >
       {% set has_valves_danfoss = input_trvs | select('is_device_attr', 'manufacturer', 'Danfoss') | list  %}
@@ -1518,7 +1527,7 @@ variables:
     {{ trigger.id in ['calibration_popp_ping','hastart','reload'] }}
 
   is_difference_popp_calibration: >
-    {{ trigger.id in ['calibration_sensor_temperature_change'] }}
+    {{ trigger.id in ['calibration_popp_change'] }}
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
