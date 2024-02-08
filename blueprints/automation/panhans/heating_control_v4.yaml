@@ -1593,7 +1593,7 @@ variables:
                                     selectattr('entity_id', 'search', 'offset') |
                                     map(attribute='entity_id') | list %}
 
-        {% if calibration_entities | count > 0 %}
+        {% if calibration_entities | count == 0 %}
           {% set calibration_entities = device_entities(device_id(valve)) |
                                     expand | selectattr('domain','in','number') |
                                     selectattr('entity_id', 'search', 'calibration') |
