@@ -237,7 +237,7 @@ blueprint:
 
     # P R O X I M I T Y
     input_proximity:
-      name: ↔️ Proximity Sensor
+      name: ↔️ Proximity Mode
       description: >
         `proximity` `optional`
 
