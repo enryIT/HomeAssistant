@@ -247,7 +247,7 @@ blueprint:
         If you're in range of your distance and towards to your home heating kicks in. If you don't specify any scheduler or presence detector heating also is enabled if you arrived.<br/>
 
         **Note**: If *on way home* is detected this gets handled like presence is on or somebody is home. So this has to match with the states of your schedulers if you use them.
-      default: none
+      default: ""
       selector:
         entity:
           filter:
@@ -318,7 +318,7 @@ blueprint:
           * The value has to match the friendly name of the selected scheduler at least partially. Example: If you provide three schedulers called *work*, *holiday/sick*, *guest* you can select the holiday scheduler while setting the selection entity to *sick*, *holiday* or *holiday/sick*. This option is case insensitive.
           * You also can go with numbers: if you want to choose the first scheduler the selector entity must return the number *1*. For the 2nd number *2* and so on.
 
-        
+
         Create your helper [here](https://my.home-assistant.io/redirect/helpers/).
       default:
       selector:
@@ -338,7 +338,7 @@ blueprint:
       description: >
         `presence detection` `optional`
 
-        
+
         If you specify a presence sensor, heating will take place if it detects presence.<br/>
         If you have specified people, at least one must also be at home.
       default:
@@ -355,7 +355,7 @@ blueprint:
       description: >
         `presence detection` `optional`
 
-        
+
         The presence scheduler specifies exactly when the presence sensor should be used during the day.
       default:
       selector:
@@ -370,7 +370,7 @@ blueprint:
       description: >
         `presence detection`
 
-        
+
         Specify the duration for which the presence sensor must detect any presence so that the comfort temperature is set.
       default:
         hours: 0
@@ -384,7 +384,7 @@ blueprint:
       description: >
         `presence detection`
 
-        
+
         Specify the duration for which the presence sensor must not detect any presence so that the minimum temperature is set.
       default:
         hours: 0
@@ -444,8 +444,8 @@ blueprint:
       name: 🪟 Windows / Doors (optional)
       description: >
         `airing` `optional`
-      
-      
+
+
         If open during airing TRVs will be set to *off*.
       default: []
       selector:
@@ -457,9 +457,9 @@ blueprint:
 
     input_windows_reaction_time_open:
       name: ⏳ Window / Door Reaction Time Open
-      description: > 
+      description: >
         `airing`
-        
+
 
         Duration for which a window or door must be open for the thermostats to close.
       default:
@@ -474,7 +474,7 @@ blueprint:
       description: >
         `airing`  
 
-      
+
         Duration for which a window or door must be closed for the thermostats to open.
       default:
         hours: 0
@@ -519,7 +519,7 @@ blueprint:
 
     # C A L I B R A T I O N
     input_temperature_sensor:
-      name: 🌡️ Calibration Temperature Sensor 
+      name: 🌡️ Calibration Temperature Sensor
       description: >
         `calibration` `optional`
 
@@ -592,10 +592,10 @@ blueprint:
       selector:
         select:
           options:
-          - label: "🧭 Generic Calibration"
-            value: generic_calibration
-          - label: "🌕 Fully Rounded Values"
-            value: rounded_values
+            - label: "🧭 Generic Calibration"
+              value: generic_calibration
+            - label: "🌕 Fully Rounded Values"
+              value: rounded_values
           multiple: true
           sort: false
           custom_value: false
@@ -614,7 +614,7 @@ blueprint:
           * input boolean
           * binary sensor
 
-        
+
         Create your helper [here](https://my.home-assistant.io/redirect/helpers/).
       default:
       selector:
@@ -750,16 +750,16 @@ blueprint:
       selector:
         select:
           options:
-          - label: "↩️ Reset Temperature"
-            value: reset_temperature
-          - label: "🛑 Off Instead Of Eco"
-            value: off_instead_min
-          - label: "🍃 Eco Instead Of Off"
-            value: not_off_but_min
-          - label: "🅰️ Auto Means Heat"
-            value: auto_means_heat
-          - label: "🇫 Fahrenheit"
-            value: fahrenheit
+            - label: "↩️ Reset Temperature"
+              value: reset_temperature
+            - label: "🛑 Off Instead Of Eco"
+              value: off_instead_min
+            - label: "🍃 Eco Instead Of Off"
+              value: not_off_but_min
+            - label: "🅰️ Auto Means Heat"
+              value: auto_means_heat
+            - label: "🇫 Fahrenheit"
+              value: fahrenheit
           multiple: true
           sort: false
           custom_value: false
@@ -789,10 +789,10 @@ blueprint:
       selector:
         select:
           options:
-          - label: "🌡️ Physical Temperature Change"
-            value: physical_temperature_change
-          - label: "🎈 Start Party Timer On Physical Change"
-            value: physical_party_timer
+            - label: "🌡️ Physical Temperature Change"
+              value: physical_temperature_change
+            - label: "🎈 Start Party Timer On Physical Change"
+              value: physical_party_timer
           multiple: true
           sort: false
           custom_value: false
@@ -988,7 +988,7 @@ trigger:
   - platform: template
     id: person_proximity_on
     value_template: >
-      {% if input_proximity_zone == none %}
+      {% if input_proximity_zone == '' %}
         {{ false }}
       {% else %}
         {% set n = namespace(dict=[]) %}
@@ -1019,7 +1019,7 @@ trigger:
   - platform: template
     id: person_proximity_off
     value_template: >
-      {% if input_proximity_zone == none %}
+      {% if input_proximity_zone == '' %}
         {{ false }}
       {% else %}
         {% set n = namespace(dict=[]) %}
@@ -1386,7 +1386,7 @@ variables:
 
   # Proximity
   is_somebody_on_way_home_state: >
-    {% if input_proximity_zone == none %}
+    {% if input_proximity_zone == '' %}
       {{ false }}
     {% else %}
       {% set n = namespace(dict=[]) %}
