@@ -1360,6 +1360,8 @@ variables:
   entry_calibration: >
     {% if (entry is defined) and entry and 'calibration' in entry.keys() %}
       {{ entry['calibration'] == 'on' }}
+    {% else %}
+      {{ true }}
     {% endif %}
 
   new_comfort_temperature: >
@@ -1481,7 +1483,7 @@ variables:
   calibration_tado: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration %}
       {% for valve in valves_tado %}
 
         {% set offset_old = state_attr(valve, iif(is_metric, 'offset_celsius', 'offset_fahrenheit')) | float %}
@@ -1507,7 +1509,7 @@ variables:
   calibration_xiaomi: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration %}
       {% for valve in valves_xiaomi %}
 
         {% set calibration_entities = device_entities(device_id(valve)) |
@@ -1544,7 +1546,7 @@ variables:
 
   calibration_external_sensor: >
     {% set n = namespace(dict=[]) %}
-    {% if (is_periodical_popp_calibration or is_difference_popp_calibration) and input_calibration_generic == false and entry_calibration != false %}
+    {% if (is_periodical_popp_calibration or is_difference_popp_calibration) and input_calibration_generic == false and entry_calibration %}
       
       {% for valve in valves_external_sensor %}
 
@@ -1582,7 +1584,7 @@ variables:
   calibration_common: >
     {% set n = namespace(dict=[]) %}
 
-    {% if is_calibration and input_calibration_generic == false and entry_calibration != false %}
+    {% if is_calibration and input_calibration_generic == false and entry_calibration %}
       
       {% for valve in valves_calibration_common %}
 
