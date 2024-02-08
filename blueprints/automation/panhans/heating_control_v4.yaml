@@ -1369,6 +1369,8 @@ variables:
             input_temperature_comfort != none and 
             as_timestamp(states.input_number[input_temperature_comfort.split('.')[1]].last_changed) < as_timestamp(entry_time,0) %}
       {{ entry_comfort_temp }}
+    {% else %}
+      {{ none }}
     {% endif %}
 
   # ------------------------------------------------------------------------------------
@@ -1377,14 +1379,13 @@ variables:
 
   is_refresh_comfort_entity: >
     {{ input_temperature_comfort != none and 
-        (new_comfort_temperature is defined) and
-        new_comfort_temperature and
+        new_comfort_temperature != none and
         new_comfort_temperature | float != states(input_temperature_comfort) | float }}
 
   state_temperature_comfort: >
     {% if input_temperature_comfort != none %}
       {{ states(input_temperature_comfort) }}
-    {% elif((new_comfort_temperature is defined) and new_comfort_temperature) %}
+    {% elif new_comfort_temperature != none %}
         {{ new_comfort_temperature }}
     {% else %}
       {{ input_temperature_comfort_static }}
@@ -1671,6 +1672,15 @@ action:
     data:
       message: >
         AHC REF  {{" \n "}}
+        {{" \n "}}
+        TRIGGER  {{" \n "}}
+          calibration: {{ calibration_number | count > 0 or calibration_tado | count > 0 }}
+          changes: {{ changes | count > 0 }}
+          manual: {{ is_manual_change or is_manual_timer_start }}
+          reset: {{ is_reset }}
+          refresh_comfort_entity: {{ is_refresh_comfort_entity }}
+        {{" \n "}}
+        {{" \n "}}
         entry: {{ entry }} {{ " \n " }}
         entry_time: {{ entry_time }} {{ " \n " }}
         entry_comfort_temp: {{ entry_comfort_temp }} {{ " \n " }}
