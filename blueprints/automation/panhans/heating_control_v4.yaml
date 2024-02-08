@@ -1263,11 +1263,7 @@ variables:
       {% set heating_mode = 'heat' %}
     {% endif %}
 
-    {% if heating_mode == 'heat' %}
-      {{ iif(input_not_heat_but_auto,'auto','heat') }}
-    {% else %}
-      {{ heating_mode }}
-    {% endif %}
+    {{ iif(input_not_heat_but_auto and heating_mode == 'heat', 'auto', heating_mode) }}
 
   is_manual_change: >
     {{
@@ -1885,7 +1881,7 @@ action:
 
             - if:
                 - condition: template
-                  value_template: "{{ state_attr(thermostat, 'temperature') != target_temperature }}"
+                  value_template: "{{ state_attr(thermostat, 'temperature') != target_temperature and mode != 'off' }}"
               then:
                 - service: climate.set_temperature
                   data:
