@@ -1411,28 +1411,6 @@ variables:
 
       {% if valve_mode != 'off' %}
 
-        {% if input_calibration_generic and input_temperature_sensor != none %}
-
-          {% set sensor_temp = states(input_temperature_sensor) %}
-
-          {% if current_valve_temp != sensor_temp %}
-            {% set offset = sensor_temp | float(0) - current_valve_temp | float(0) %}
-            {% set temp_with_offset = float(temperature) - float(offset) %}
-            {% set step = state_attr(valve, 'target_temp_step') | float(0.5) %}
-
-            {% set temp_with_offset = (temp_with_offset | float(0) / float(step)) | round(0) * float(step) %}
-
-            {% if(temp_with_offset > max_temp) %}
-              {% set temp_with_offset = max_temp %}
-            {% elif (temp_with_offset < min_temp) %}
-              {% set temp_with_offset = min_temp %}
-            {% endif %}
-
-            {% set valve_temp = iif(input_calibration_rounding_full_values == true, float(temp_with_offset) | round(), temp_with_offset | round(1)) %}
-
-          {% endif %}
-        {% endif %}
-
         {% if input_aggressive_mode_range > 0 and input_aggressive_mode_offset > 0 %}
           {% set temp_diff = valve_temp - current_valve_temp %}
 
@@ -1448,6 +1426,28 @@ variables:
             {% set valve_temp = max_temp %}
           {% endif %}
 
+        {% endif %}
+
+        {% if input_calibration_generic and input_temperature_sensor != none %}
+
+          {% set sensor_temp = states(input_temperature_sensor) %}
+
+          {% if current_valve_temp != sensor_temp %}
+            {% set offset = sensor_temp | float(0) - current_valve_temp | float(0) %}
+            {% set temp_with_offset = float(valve_temp) - float(offset) %}
+            {% set step = state_attr(valve, 'target_temp_step') | float(0.5) %}
+
+            {% set temp_with_offset = (temp_with_offset | float(0) / float(step)) | round(0) * float(step) %}
+
+            {% if(temp_with_offset > max_temp) %}
+              {% set temp_with_offset = max_temp %}
+            {% elif (temp_with_offset < min_temp) %}
+              {% set temp_with_offset = min_temp %}
+            {% endif %}
+
+            {% set valve_temp = iif(input_calibration_rounding_full_values == true, float(temp_with_offset) | round(), temp_with_offset | round(1)) %}
+
+          {% endif %}
         {% endif %}
 
       {% endif %}
