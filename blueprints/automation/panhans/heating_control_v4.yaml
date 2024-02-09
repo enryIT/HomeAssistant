@@ -34,7 +34,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_rc2
+    **Version**: 4.0_rc3
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -143,26 +143,49 @@ blueprint:
         Here you can setup some adjustments to your heating schedule. What's possibible until now?
         <br/>
 
-        **time**  ➡️ timestamp when the adjustment should kick in (required) <br/>
-        **day**   ➡️ Mon,Tue,Wed,Thu,Fri,Sat,Sun <br/>
-        **temp**  ➡️ comfort temperature <br/>
-        **calibration** ➡️ on/off <br/>
-        <br/>
+        > 🕔 **time**
+        
+        > timestamp when the adjustment should kick in (required)
 
-        You can adjust your temperature by your comfort temperature entity. It will get overwritten if a new adjustment entry gets into the game or after a home assistant restart.
+
+        > 🗓️ **days**
+        
+        > Select days where this setting shall be enabled
+        
+        > ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+
+
+        > 🛋️ **comfort**
+        
+        > adjust comfort temperature
+
+
+        > 🌱 **eco**
+       
+        > adjust eco temperature
+
+
+        > 🧭 **calibration**
+        
+        > toggle calibration 
+        
+        > on/off
+
+        Example:
         <br/>
 
         ```yaml
 
         - time: "08:00"
-          temp: "22"
+          comfort: "20"
           calibration: "off"
         - time: "16:00"
-          temp: "20"
+          eco: "19"
           calibration: "on"
         - time: "20:00"
-          day: "Sun"
-          temp: "24"
+          days: ['Sat','Sun']
+          comfort: "24"
+          eco: "17"
         ```
 
       selector:
@@ -1438,17 +1461,6 @@ variables:
       {% endif %}
     {% endif %}
 
-  state_temperature_min: >
-    {% if is_frost_protection %}
-      {{ input_frost_protection_temp }}
-    {% else %}
-      {% if input_temperature_minimum != none %}
-        {{ states(input_temperature_minimum) }}
-      {% else %}
-        {{ input_temperature_minimum_static }}
-      {% endif %}
-    {% endif %}
-
   # T R V - V A L U E S
   set_comfort: >
     {% if state_mode_party == true or is_somebody_on_way_home %}
@@ -1526,23 +1538,42 @@ variables:
     {% set result =  namespace(r=none)%}
     {% for e in plan %}
 
-      {% set e_time = e['time']%}
-      {% set e_time_h = e['time'].split(':')[0] | int %}
-      {% set e_time_m = e['time'].split(':')[1] | int %}
-      {% set entry_time = now().replace(hour=e_time_h,minute=e_time_m,second=0,microsecond=0) %}
+      {% if 'days' in e.keys() %}
+        {% set today = now().strftime('%a') %}
+        {% if today not in e['days'] %}
+          {% set e = none %}
+        {% endif %}
+      {% endif %}
 
-      {% if entry_time <= current_time %}
-        {% if result.r == none %}
-          {% set result.r = e %}
-        {% else %}
-          {% set e_time_h_old = result.r['time'].split(':')[0] | int %}
-          {% set e_time_m_old = result.r['time'].split(':')[1] | int %}
-          {% set entry_time_old = now().replace(hour=e_time_h_old,minute=e_time_m_old,second=0,microsecond=0) %}
+      {% if 'scheduler' in e.keys() %}
+        {% if active_scheduler == none or 
+              active_scheduler == '' or 
+              e['scheduler'] not in state_attr(active_scheduler,'friendly_name') %}
+          {% set e = none %}
+        {% endif %}
+      {% endif %}
 
-          {% if entry_time > entry_time_old %}
+      {% if e != none%}
+        {% set e_time = e['time']%}
+        {% set e_time_h = e['time'].split(':')[0] | int %}
+        {% set e_time_m = e['time'].split(':')[1] | int %}
+        {% set entry_time = now().replace(hour=e_time_h,minute=e_time_m,second=0,microsecond=0) %}
+
+        {% if entry_time <= current_time %}
+          {% if result.r == none %}
             {% set result.r = e %}
-          {% endif %}
+          {% else %}
+            {% set e_time_h_old = result.r['time'].split(':')[0] | int %}
+            {% set e_time_m_old = result.r['time'].split(':')[1] | int %}
+            {% set entry_time_old = now().replace(hour=e_time_h_old,minute=e_time_m_old,second=0,microsecond=0) %}
 
+            {% if 'scheduler' not in e.keys() and 
+                  'days' not in result.r.keys() and 
+                  entry_time > entry_time_old %}
+              {% set result.r = e %}
+            {% endif %}
+
+          {% endif %}
         {% endif %}
       {% endif %}
 
@@ -1558,8 +1589,17 @@ variables:
     {% endif %}
 
   entry_comfort_temp: >
-    {% if (entry is defined) and entry and 'temp' in entry.keys() %}
-      {{ entry['temp'] }}
+    {% if (entry is defined) and entry and 'comfort' in entry.keys() %}
+      {{ entry['comfort'] }}
+    {% else %}
+      {{ none }}
+    {% endif %}
+
+  entry_eco_temp: >
+    {% if (entry is defined) and entry and 'eco' in entry.keys() %}
+      {{ entry['eco'] }}
+    {% else %}
+      {{ none }}
     {% endif %}
 
   entry_calibration: >
@@ -1573,11 +1613,24 @@ variables:
     {% if trigger.id == 'hastart' and entry_comfort_temp != none %}
       {{ entry_comfort_temp }}
     {% elif entry_comfort_temp != none and input_temperature_comfort == none %}
-        {{ entry_comfort_temp }}
+      {{ entry_comfort_temp }}
     {% elif entry_comfort_temp != none and 
             input_temperature_comfort != none and 
             as_timestamp(states.input_number[input_temperature_comfort.split('.')[1]].last_changed) < as_timestamp(entry_time,0) %}
       {{ entry_comfort_temp }}
+    {% else %}
+      {{ none }}
+    {% endif %}
+
+  new_eco_temperature: >
+    {% if trigger.id == 'hastart' and entry_eco_temp != none %}
+      {{ entry_eco_temp }}
+    {% elif entry_eco_temp != none and input_temperature_minimum == none %}
+      {{ entry_eco_temp }}
+    {% elif entry_comfort_temp != none and 
+            input_temperature_minimum != none and 
+            as_timestamp(states.input_number[input_temperature_minimum.split('.')[1]].last_changed) < as_timestamp(entry_time,0) %}
+      {{ entry_eco_temp }}
     {% else %}
       {{ none }}
     {% endif %}
@@ -1591,6 +1644,11 @@ variables:
         new_comfort_temperature != none and
         new_comfort_temperature | float != states(input_temperature_comfort) | float }}
 
+  is_refresh_eco_entity: >
+    {{ input_temperature_minimum != none and 
+        new_eco_temperature != none and
+        new_eco_temperature | float != states(input_temperature_minimum) | float }}
+
   state_temperature_comfort: >
     {% if input_temperature_comfort != none %}
       {{ states(input_temperature_comfort) }}
@@ -1600,9 +1658,21 @@ variables:
       {{ input_temperature_comfort_static }}
     {% endif %}
 
+  state_temperature_min: >
+    {% if is_frost_protection %}
+      {{ input_frost_protection_temp }}
+    {% else %}
+      {% if input_temperature_minimum != none %}
+        {{ states(input_temperature_minimum) }}
+      {% elif new_eco_temperature != none and new_eco_temperature != '' %}
+        {{ new_eco_temperature }}
+      {% else %}
+        {{ input_temperature_minimum_static }}
+      {% endif %}
+    {% endif %}
+
   temperature: >
-    {% set temp = state_temperature_comfort %}
-    {{ iif(set_comfort, temp, state_temperature_min) }}
+    {{ iif(set_comfort, state_temperature_comfort, state_temperature_min) }}
 
   changes: >
     {% set n = namespace(dict=[]) %}
@@ -1863,7 +1933,7 @@ condition:
       - condition: template
         value_template: "{{ is_reset }}"
       - condition: template
-        value_template: "{{ is_refresh_comfort_entity }}"
+        value_template: "{{ is_refresh_comfort_entity or is_refresh_eco_entity }}"
 
 ##################################################
 ################## A C T I O N ###################
@@ -1887,7 +1957,7 @@ action:
         is_changes: {{ changes | count > 0 }} {{" \n "}}
         is_manual: {{ is_manual_change or is_manual_timer_start }} {{" \n "}}
         is_reset: {{ is_reset }} {{" \n "}}
-        is_refresh_comfort_entity: {{ is_refresh_comfort_entity }} {{" \n "}}
+        is_refresh_comfort_entity: {{ is_refresh_comfort_entity or is_refresh_eco_entity }} {{" \n "}}
         {{" \n "}}
         entry: {{ entry }} {{ " \n " }}
         entry_time: {{ entry_time }} {{ " \n " }}
@@ -1951,15 +2021,17 @@ action:
       # MANUAL CHANGE / TIMER START
       - conditions:
           - condition: template
-            value_template: "{{ is_manual_change or is_manual_timer_start or is_refresh_comfort_entity }}"
+            value_template: "{{ is_manual_change or is_manual_timer_start or is_refresh_comfort_entity or is_refresh_eco_entity }}"
         sequence:
+          # CHANGE COMFORT
           - if:
               - condition: template
-                value_template: "{{ is_manual_change or is_refresh_comfort_entity }}"
+                value_template: "{{ (is_manual_change and set_comfort) or is_refresh_comfort_entity }}"
             then:
               - variables:
                   max_comfort_temp: "{{ state_attr(input_temperature_comfort,'max') | float }}"
                   min_comfort_temp: "{{ state_attr(input_temperature_comfort,'min') | float }}"
+
                   new_manual_temp: >
                     {% if is_refresh_comfort_entity %}
                       {{ new_comfort_temperature }}
@@ -1983,11 +2055,39 @@ action:
                   value: "{{ real_manual_temp }}"
                 target:
                   entity_id: !input input_temperature_comfort
+          
+          # CHANGE ECO
+          - if:
+              - condition: template
+                value_template: "{{ (is_manual_change and set_comfort == false) or is_refresh_eco_entity }}"
+            then:
+              - variables:
+                  max_eco_temp: "{{ state_attr(input_temperature_minimum,'max') | float }}"
+                  min_eco_temp: "{{ state_attr(input_temperature_minimum,'min') | float }}"
+                  
+                  new_manual_temp: >
+                    {% if is_refresh_eco_entity %}
+                      {{ new_eco_temperature }}
+                    {% else %}
+                      {{ trigger.to_state.attributes.temperature }}
+                    {% endif %}
+                  real_manual_temp: >
+                    {% if (new_manual_temp > max_eco_temp) %}
+                      {{ max_eco_temp }}
+                    {% elif (new_manual_temp < min_eco_temp ) %}
+                      {{ min_eco_temp }}
+                    {% else %}
+                      {{ new_manual_temp }}
+                    {% endif %}
 
-              - delay:
-                  hours: "{{ input_service_call_delay.hours }}"
-                  minutes: "{{ input_service_call_delay.minutes }}"
-                  seconds: "{{ input_service_call_delay.seconds }}"
+              - condition: template
+                value_template: "{{  real_manual_temp != state_temperature_comfort }}"
+
+              - service: input_number.set_value
+                data:
+                  value: "{{ real_manual_temp }}"
+                target:
+                  entity_id: !input input_temperature_minimum
 
           - if:
               - condition: template
