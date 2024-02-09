@@ -157,7 +157,7 @@ blueprint:
 
         > ⏲️ **scheduler**
         
-        > Only enable this entry if this string is in the name of your active scheduler.
+        > Only enable this entry if this string is part of the name of your active scheduler.
 
 
         > 🛋️ **comfort**
