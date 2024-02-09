@@ -145,7 +145,7 @@ blueprint:
 
         > 🕔 **time**
         
-        > timestamp when the adjustment should kick in (required)
+        > Timestamp when the adjustment should kick in. (required)
 
 
         > 🗓️ **days**
@@ -157,19 +157,20 @@ blueprint:
 
         > 🛋️ **comfort**
         
-        > adjust comfort temperature
+        > Adjust comfort temperature
 
 
         > 🌱 **eco**
        
-        > adjust eco temperature
+        > Adjust eco temperature
 
 
         > 🧭 **calibration**
         
-        > toggle calibration 
+        > Toggle calibration 
         
         > on/off
+
 
         Example:
         <br/>
