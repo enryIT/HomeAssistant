@@ -27,7 +27,7 @@ blueprint:
 
     - thermostat calibration for the most common devices
 
-    - several tweaks for fixing your TRV issues
+    - several tweaks for fixing your thermostat issues
 
     - custom action
 
@@ -425,7 +425,7 @@ blueprint:
         `airing` `optional`
 
 
-        If open during airing TRVs will be set to *off*.
+        If open during airing your thermostates will be set to *off* at least to their minimum temperature if they don't support hvac mode *OFF*.
       default: []
       selector:
         entity:
@@ -525,7 +525,8 @@ blueprint:
         `calibration`
 
 
-        Define a timeout if you want to decrease the amount of calibration calls if temperature changes too much. At least temperature of the external sensor or trv must stay for that duration before calibration gets triggered.
+        Define a timeout if you want to decrease the amount of calibration calls if temperature changes too much.
+        At least the temperature of the external sensor or thermostat must stay for that duration before calibration gets triggered.
 
         **HINT:** A minimum timeout of 2s is recommended.
       default:
@@ -541,7 +542,7 @@ blueprint:
         `calibration`
 
 
-        If the difference between the TRV temperature and the external sensor temperature is greater or less than the calibration delta the TRV calibration will be triggered.<br/>
+        If the difference between the thermostat temperature and the external sensor temperature is greater or less than the calibration delta the thermostat calibration will be triggered.<br/>
         The lower the delta the often calibration gets triggered.
       default: 0.5
       selector:
@@ -688,7 +689,7 @@ blueprint:
         `tweak`
 
 
-        Some TRVs have problems with setting mode and temperature. You can try to increase the
+        Some thermostats have problems with setting mode and temperature. You can try to increase the
         delay between the service calls. This could fix your problems.
       default:
         hours: 0
@@ -783,7 +784,7 @@ blueprint:
         `optional`
 
 
-        Set the maximum temperature of all TRVs regardless of any other settings.
+        Set the maximum temperature of all thermostats regardless of any other settings.
 
 
         **HINT:** Implemented by developer for maintenance reasons. Create your helper [here](https://my.home-assistant.io/redirect/helpers/).
@@ -1844,25 +1845,25 @@ variables:
 
   is_heating: "{{ set_comfort and mode != 'off' }}"
 
-  ##################################################
-  ########### C O N D I T I O N S ##################
-  ##################################################
+##################################################
+########### C O N D I T I O N S ##################
+##################################################
 
-  condition:
-    - condition: or
-      conditions:
-        - condition: template
-          value_template: "{{ calibration_number | count > 0 }}"
-        - condition: template
-          value_template: "{{ calibration_tado | count > 0 }}"
-        - condition: template
-          value_template: "{{ changes | count > 0 }}"
-        - condition: template
-          value_template: "{{ is_manual_change or is_manual_timer_start }}"
-        - condition: template
-          value_template: "{{ is_reset }}"
-        - condition: template
-          value_template: "{{ is_refresh_comfort_entity }}"
+condition:
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ calibration_number | count > 0 }}"
+      - condition: template
+        value_template: "{{ calibration_tado | count > 0 }}"
+      - condition: template
+        value_template: "{{ changes | count > 0 }}"
+      - condition: template
+        value_template: "{{ is_manual_change or is_manual_timer_start }}"
+      - condition: template
+        value_template: "{{ is_reset }}"
+      - condition: template
+        value_template: "{{ is_refresh_comfort_entity }}"
 
 ##################################################
 ################## A C T I O N ###################
