@@ -7,55 +7,34 @@ blueprint:
 
     - heating based on a scheduler, presence of persons and/or presence sensor
 
-    - window open / TRV off
+    - multiple schedulers
+
+    - proximity / geo fencing feature
+
+    - frost protection
+
+    - adjustable aggressive mode
+
+    - activation based on weather, temperature or boolean entities
+
+    - granular schedule adjustments
+
+    - multiple window open detection
 
     - party mode
 
-    - guest mode (if nobody is home who activates heating automatically)
+    - guest mode
 
-    - winter mode: enable / disable the automation itself
-
-    - holiday mode: provide a 2nd holiday scheduler
-
-    - trv calibration by an external temperature sensor
+    - thermostat calibration for the most common devices
 
     - several tweaks for fixing your TRV issues
 
-
-    ## New in version 4
-
-    ✅ Time Based Comfort Temperature Heating Plan
-
-    ✅ switch from number selectors to duration selectors to make timeouts ect. more flexible
-
-    ✅ generic TRV calibration
-
-    ✅ multiple schedulers
-
-    ✅ not mode heat but auto
-
-    ✅ variable (*input_number*) minimum temperature
-
-    ✅ frost protection temp if people not home or presence sensor wasn't on for specific duration
-
-    ✅ adjustable aggressive mode
-
-    ✅ custom actions when switching between heat and min
-
-    ✅ customizable durations for people leaving / entering home
-
-    ✅ weather or temperature sensor for winter mode
-
-    ✅ make use of HA's proximity integration aka geofencing
-
-    ✅ Fahrenheit support
-
-    ✅ possibility to pause calibration
+    - custom action
 
 
     ## Additional Information
 
-    **Version**: 4.0_rc1
+    **Version**: 4.0_rc2
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -87,7 +66,7 @@ blueprint:
           multiple: true
 
     input_temperature_minimum_static:
-      name: 🍃 Static Eco Temperature
+      name: 🌱 Static Eco Temperature
       description: >
         `eco temperature`
 
@@ -103,7 +82,7 @@ blueprint:
           unit_of_measurement: °C / °F
 
     input_temperature_minimum:
-      name: 🍃 Eco Temperature
+      name: 🌱 Eco Temperature
       description: >
         `eco temperature` `optional`
 
@@ -732,7 +711,7 @@ blueprint:
 
         > Turn off your thermostats instead of lower the temperature to eco temperature
 
-        > ### 🍃 Eco Temperature Instead Of *OFF*
+        > ### 🌱 Eco Temperature Instead Of *OFF*
 
         > Lower the temperature instead of turning them *OFF*, e.g. during airing
 
@@ -754,7 +733,7 @@ blueprint:
               value: reset_temperature
             - label: "🛑 Off Instead Of Eco"
               value: off_instead_min
-            - label: "🍃 Eco Instead Of Off"
+            - label: "🌱 Eco Instead Of Off"
               value: not_off_but_min
             - label: "🅰️ Auto Means Heat"
               value: auto_means_heat
@@ -1614,7 +1593,7 @@ variables:
   state_temperature_comfort: >
     {% if input_temperature_comfort != none %}
       {{ states(input_temperature_comfort) }}
-    {% elif new_comfort_temperature != none %}
+    {% elif new_comfort_temperature != none and new_comfort_temperature != '' %}
         {{ new_comfort_temperature }}
     {% else %}
       {{ input_temperature_comfort_static }}
@@ -1901,6 +1880,14 @@ action:
     data:
       message: >
         AHC REF  {{" \n "}}
+        {{" \n "}}
+        TRIGGER {{" \n "}}
+        is_calibration: {{ calibration_number | count > 0 or calibration_tado | count > 0 }} {{" \n "}}
+        is_changes: {{ changes | count > 0 }} {{" \n "}}
+        is_manual: {{ is_manual_change or is_manual_timer_start }} {{" \n "}}
+        is_reset: {{ is_reset }} {{" \n "}}
+        is_refresh_comfort_entity: {{ is_refresh_comfort_entity }} {{" \n "}}
+        {{" \n "}}
         entry: {{ entry }} {{ " \n " }}
         entry_time: {{ entry_time }} {{ " \n " }}
         entry_comfort_temp: {{ entry_comfort_temp }} {{ " \n " }}
