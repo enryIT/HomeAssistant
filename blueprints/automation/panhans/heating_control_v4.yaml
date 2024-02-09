@@ -150,9 +150,14 @@ blueprint:
 
         > 🗓️ **days**
         
-        > Select days where this setting shall be enabled
+        > Select days where this setting shall be enabled.
         
         > ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+
+
+        > ⏲️ **scheduler**
+        
+        > Only enable this entry if the name of your active scheduler matches this string.
 
 
         > 🛋️ **comfort**
@@ -185,6 +190,7 @@ blueprint:
           calibration: "on"
         - time: "20:00"
           days: ['Sat','Sun']
+          scheduler: 'Holidays'
           comfort: "24"
           eco: "17"
         ```
