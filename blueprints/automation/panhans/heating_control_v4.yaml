@@ -1,6 +1,8 @@
 blueprint:
   name: Advanced Heating Control v4
   author: panhans
+  homeassistant:
+    min_version: "2024.2.0"
   description: "
 
     ## Core Features
