@@ -609,7 +609,6 @@ blueprint:
             - label: "🌕 Fully Rounded Values"
               value: rounded_values
           multiple: true
-          sort: false
           custom_value: false
           mode: list
 
@@ -773,7 +772,6 @@ blueprint:
             - label: "🇫 Fahrenheit"
               value: fahrenheit
           multiple: true
-          sort: false
           custom_value: false
           mode: list
 
@@ -806,7 +804,6 @@ blueprint:
             - label: "🎈 Start Party Timer On Physical Change"
               value: physical_party_timer
           multiple: true
-          sort: false
           custom_value: false
           mode: list
 
