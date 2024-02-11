@@ -36,7 +36,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_rc3_a
+    **Version**: 4.0_rc4
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -247,8 +247,8 @@ blueprint:
         duration:
 
     # P R O X I M I T Y
-    input_proximity_zone:
-      name: ↔️ Proximity Zone
+    input_proximity:
+      name: ↔️ Proximity
       description: >
         `proximity` `optional`
 
@@ -260,9 +260,9 @@ blueprint:
         **Note**: If *on way home* is detected this gets handled like presence is on or somebody is home. So this has to match with the states of your schedulers if you use them.
       default: ""
       selector:
-        entity:
+        device:
           filter:
-            domain: zone
+            integration: proximity
           multiple: false
 
     input_proximity_duration:
@@ -882,7 +882,7 @@ trigger_variables:
   input_presence_sensor: !input input_presence_sensor
   input_calibration_timeout: !input input_calibration_timeout
 
-  input_proximity_zone: !input input_proximity_zone
+  input_proximity: !input input_proximity
   input_proximity_duration: !input input_proximity_duration
   input_proximity_distance: !input input_proximity_distance
 
@@ -1000,63 +1000,63 @@ trigger:
   - platform: template
     id: person_proximity_on
     value_template: >
-      {% if input_proximity_zone == '' %}
-        {{ false }}
-      {% else %}
-        {% set n = namespace(dict=[]) %}
-        {% set zone_name = state_attr(input_proximity_zone,'friendly_name').replace(' ','_') | lower %}
-        {% for person in input_persons %}
+      {% set proximity_entities = device_entities(input_proximity) %}
+      {% set is_arrived = proximity_entities  | expand 
+                                                | selectattr('attributes.device_class', 'eq', 'enum') 
+                                                | map(attribute='entity_id') | select('is_state','arrived') 
+                                                | list | count > 0 %}
 
-          {% set directions = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'enum') | map(attribute='entity_id') | list %}
-          {% set distances = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'distance') | map(attribute='entity_id') | list %}  
+      {% set entities_towards = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'enum') 
+                                              | map(attribute='entity_id') | select('is_state','towards') 
+                                              | list %}
 
-          {% if directions | count > 0 and 
-                distances | count > 0 and 
-                has_value(distances | first) and 
-                has_value(directions | first)  %}
-                
-            {% set n.dict = n.dict + [{'direction': states(directions | first), 'distance': float(states(distances | first))}] %}
+      {% set entities_distances = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'distance')
+                                              | map(attribute='entity_id')
+                                              | list %}
 
-          {% endif %}
-
-        {% endfor %}
-
-        {% set is_towards = n.dict | selectattr('direction','eq','towards') | selectattr('distance','<=',input_proximity_distance) | list | count > 0  %}
-        {% set is_arrived = n.dict | selectattr('direction','eq','arrived') | list | count > 0  %}
-
-        {{ is_towards == true or is_arrived == true }}
-      {% endif %}
+      {% set result = namespace(is_towards=false) %}
+      {% for t in entities_towards %}
+        {% set name = t.split('_')[:-1] | join('_') %}
+        {% set entities_distances_filtered = entities_distances | expand | selectattr('entity_id','search',name) | map(attribute='entity_id') | list %}
+        {% if result.is_towards == false and entities_distances_filtered | count > 0 %}
+          {% set result.is_towards = states(entities_distances_filtered | first) | int <= input_proximity_distance | int %}
+        {% endif %}
+      {% endfor %}
+      {% set is_towards = result.is_towards %}
+      {{ is_towards or is_arrived }}
     for: !input input_proximity_duration
 
   - platform: template
     id: person_proximity_off
     value_template: >
-      {% if input_proximity_zone == '' %}
-        {{ false }}
-      {% else %}
-        {% set n = namespace(dict=[]) %}
-        {% set zone_name = state_attr(input_proximity_zone,'friendly_name').replace(' ','_') | lower %}
-        {% for person in input_persons %}
+      {% set proximity_entities = device_entities(input_proximity) %}
+      {% set is_arrived = proximity_entities  | expand 
+                                                | selectattr('attributes.device_class', 'eq', 'enum') 
+                                                | map(attribute='entity_id') | select('is_state','arrived') 
+                                                | list | count > 0 %}
 
-          {% set directions = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'enum') | map(attribute='entity_id') | list %}
-          {% set distances = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'distance') | map(attribute='entity_id') | list %}
+      {% set entities_towards = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'enum') 
+                                              | map(attribute='entity_id') | select('is_state','towards') 
+                                              | list %}
 
-          {% if directions | count > 0 and 
-                distances | count > 0 and 
-                has_value(distances | first) and 
-                has_value(directions | first)  %}
-                
-            {% set n.dict = n.dict + [{'direction': states(directions | first), 'distance': float(states(distances | first))}] %}
+      {% set entities_distances = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'distance')
+                                              | map(attribute='entity_id')
+                                              | list %}
 
-          {% endif %}
-
-        {% endfor %}
-
-        {% set is_towards = n.dict | selectattr('direction','eq','towards') | selectattr('distance','<=',input_proximity_distance) | list | count > 0  %}
-        {% set is_arrived = n.dict | selectattr('direction','eq','arrived') | list | count > 0  %}
-
-        {{ is_towards == false and is_arrived == false }}
-      {% endif %}
+      {% set result = namespace(is_towards=false) %}
+      {% for t in entities_towards %}
+        {% set name = t.split('_')[:-1] | join('_') %}
+        {% set entities_distances_filtered = entities_distances | expand | selectattr('entity_id','search',name) | map(attribute='entity_id') | list %}
+        {% if result.is_towards == false and entities_distances_filtered | count > 0 %}
+          {% set result.is_towards = states(entities_distances_filtered | first) | int <= input_proximity_distance | int %}
+        {% endif %}
+      {% endfor %}
+      {% set is_towards = result.is_towards %}
+      {{ is_towards == false and is_arrived == false }}
     for: !input input_proximity_duration
 
   # W I N D O W  O P E N
@@ -1285,7 +1285,7 @@ variables:
   input_mode_winter: !input input_mode_winter
   input_mode_outside_temperature: !input input_mode_outside_temperature
   input_mode_outside_temperature_threshold: !input input_mode_outside_temperature_threshold
-  input_proximity_zone: !input input_proximity_zone
+  input_proximity: !input input_proximity
 
   input_mode_party: !input input_mode_party
   input_mode_guest: !input input_mode_guest
@@ -1398,32 +1398,34 @@ variables:
 
   # Proximity
   is_somebody_on_way_home_state: >
-    {% if input_proximity_zone == '' %}
-      {{ false }}
-    {% else %}
-      {% set n = namespace(dict=[]) %}
-      {% set zone_name = state_attr(input_proximity_zone,'friendly_name').replace(' ','_') | lower %}
-      {% for person in input_persons %}
+      {% set proximity_entities = device_entities(input_proximity) %}
 
-        {% set directions = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'enum') | map(attribute='entity_id') | list %}
-        {% set distances = integration_entities('proximity') | expand | selectattr('entity_id', 'search', zone_name) | selectattr('attributes.friendly_name', 'search', state_attr(person,'friendly_name')) | selectattr('attributes.device_class', 'eq', 'distance') | map(attribute='entity_id') | list %}
+      {% set is_arrived = proximity_entities  | expand 
+                                                | selectattr('attributes.device_class', 'eq', 'enum') 
+                                                | map(attribute='entity_id') | select('is_state','arrived') 
+                                                | list | count > 0 %}
 
-        {% if directions | count > 0 and 
-              distances | count > 0 and 
-              has_value(distances | first) and 
-              has_value(directions | first)  %}
-              
-          {% set n.dict = n.dict + [{'direction': states(directions | first), 'distance': float(states(distances | first))}] %}
+      {% set entities_towards = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'enum') 
+                                              | map(attribute='entity_id') | select('is_state','towards') 
+                                              | list %}
 
+      {% set entities_distances = proximity_entities  | expand 
+                                              | selectattr('attributes.device_class', 'eq', 'distance')
+                                              | map(attribute='entity_id')
+                                              | list %}
+
+      {% set result = namespace(is_towards=false) %}
+      {% for t in entities_towards %}
+        {% set name = t.split('_')[:-1] | join('_') %}
+        {% set entities_distances_filtered = entities_distances | expand | selectattr('entity_id','search',name) | map(attribute='entity_id') | list %}
+        {% if result.is_towards == false and entities_distances_filtered | count > 0 %}
+          {% set result.is_towards = states(entities_distances_filtered | first) | int <= input_proximity_distance | int %}
         {% endif %}
-
       {% endfor %}
-
-      {% set is_towards = n.dict | selectattr('direction','eq','towards') | selectattr('distance','<=',input_proximity_distance) | list | count > 0  %}
-      {% set is_arrived = n.dict | selectattr('direction','eq','arrived') | list | count > 0  %}
+      {% set is_towards = result.is_towards %}
 
       {{ (is_scheduled_heating == false and is_presence_sensor_defined == false and is_arrived == true) or is_towards == true}}
-    {% endif %}
 
   is_somebody_on_way_home: >
     {% if is_somebody_on_way_home_state == false %}
@@ -1437,7 +1439,7 @@ variables:
     {% elif is_presence_sensor_defined == false and is_person_based and is_scheduled_heating == false %}
       {{ true }}
     {% else %}
-      {{ false }}
+      {{ is_somebody_on_way_home_state }}
     {% endif %}
 
   is_frost_protection: >
@@ -1968,6 +1970,9 @@ action:
         is_reset: {{ is_reset }} {{" \n "}}
         is_refresh_comfort_entity: {{ is_refresh_comfort_entity or is_refresh_eco_entity }} {{" \n "}}
         {{" \n "}}
+        proximity: {{ input_proximity }} {{ " \n " }}
+        is_somebody_on_way_home_state: {{ is_somebody_on_way_home_state }} {{ " \n " }}
+        proximity_entities: {{ device_entities(input_proximity) }} {{ " \n " }}
         entry: {{ entry }} {{ " \n " }}
         entry_time: {{ entry_time }} {{ " \n " }}
         entry_comfort_temp: {{ entry_comfort_temp }} {{ " \n " }}
