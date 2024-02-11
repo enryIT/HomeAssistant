@@ -1,50 +1,53 @@
 blueprint:
-  name: Advanced Heating Control v4
+  name: Advanced Heating Control
   author: panhans
   homeassistant:
     min_version: "2024.2.0"
   description: "
 
-    ## Core Features
+    
 
-    - heating based on a scheduler, presence of persons and/or presence sensor
-
-    - multiple schedulers
-
-    - proximity / geo fencing feature
-
-    - frost protection
-
-    - adjustable aggressive mode
-
-    - activation based on weather, temperature or boolean entities
-
-    - granular schedule adjustments
-
-    - multiple window open detection
-
-    - party mode
-
-    - guest mode
-
-    - thermostat calibration for the most common devices
-
-    - several tweaks for fixing your thermostat issues
-
-    - custom action
+    🔥 heating based on
 
 
-    ## Additional Information
+    > 👥 people presence
+
+      🗓️ multiple schedulers
+
+      🚶 presence sensor
+
+      ↔️ proximity aka geo fencing
+
+
+    ❄ frost protection
+
+    😡 adjustable aggressive mode
+
+    🌤️ activation based on weather, temperature or boolean entities
+
+    🎛️ granular schedule adjustments
+
+    🪟 multiple window open detection
+
+    🎈 party mode
+
+    🤝 guest mode
+
+    🧭 thermostat calibration for the most common devices (Tado, Aqara, Popp / Danfoss / Hive, Tuya)
+
+    ⚙️ several tweaks for fixing your thermostat issues
+
+    🎬 custom action
+
+    🤫 calm & 💪 reliable
+
+
 
     **Version**: 4.0_rc4a
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
-    **Debug Configuration**: `blueprints.panhans.heatingcontrol: debug`
-
-
-
-    If you like my work and support feel free to support me.
+    **Documentation:** work in progress
 
 
     [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q3QEH52)
@@ -150,14 +153,14 @@ blueprint:
         > Timestamp when the adjustment should kick in. (required)
 
 
-        > 🗓️ **days**
+        > 📆 **days**
         
         > Select days where this setting shall be enabled.
         
         > ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 
 
-        > ⏲️ **scheduler**
+        > 🗓️ **scheduler**
         
         > Only enable this entry if this string is part of the name of your active scheduler.
 
@@ -452,7 +455,7 @@ blueprint:
 
     # W I N D O W   O P E N   D E T E C T I O N
     input_windows:
-      name: 🪟 Windows / Doors (optional)
+      name: 🪟 Windows & Doors
       description: >
         `airing` `optional`
 
@@ -467,7 +470,7 @@ blueprint:
           multiple: true
 
     input_windows_reaction_time_open:
-      name: ⏳ Window / Door Reaction Time Open
+      name: ⏳ Window & Door Reaction Time Open
       description: >
         `airing`
 
@@ -481,7 +484,7 @@ blueprint:
         duration:
 
     input_windows_reaction_time_close:
-      name: ⏳ Window / Door Reaction Time Close
+      name: ⌛ Window & Door Reaction Time Close
       description: >
         `airing`  
 
