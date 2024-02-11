@@ -137,7 +137,7 @@ blueprint:
           multiple: false
 
     input_time_based_temperature_change_valve_target:
-      name: 📈 Heating Schedule Adjustments
+      name: 🎛️ Heating Schedule Adjustments
       description: >
         `optional`
 
