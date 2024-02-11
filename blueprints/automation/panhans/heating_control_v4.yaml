@@ -36,7 +36,7 @@ blueprint:
 
     ## Additional Information
 
-    **Version**: 4.0_rc4
+    **Version**: 4.0_rc4a
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1545,52 +1545,31 @@ variables:
 
   entry: >
     {% set plan = input_time_based_temperature_change_valve_target | rejectattr('time', 'undefined') | list %}
-    {% set current_time = now().replace(second=0,microsecond=0) %}
-    {% set result =  namespace(r=none)%}
-    {% for e in plan %}
+    {% set day = now().strftime('%a') %}
+    {% set current_time = now().strftime('%H%M') | int %}
+    {% set result = namespace(entry=none) %}
 
-      {% if 'days' in e.keys() %}
-        {% set today = now().strftime('%a') %}
-        {% if today not in e['days'] %}
-          {% set e = none %}
-        {% endif %}
+    {% for e in plan %}
+      {% if 'days' in e.keys() and day not in e['days'] %}
+        {% set e = none %}
       {% endif %}
 
-      {% if e != none and  'scheduler' in e.keys() %}
-        {% if active_scheduler == none or 
-              active_scheduler == '' or 
-              e['scheduler'] not in state_attr(active_scheduler,'friendly_name') %}
-          {% set e = none %}
-        {% endif %}
+      {% if e != none and 'scheduler' in e.keys() and active_scheduler != e['scheduler'] %}
+        {% set e = none %}
       {% endif %}
 
       {% if e != none%}
-        {% set e_time = e['time']%}
-        {% set e_time_h = e['time'].split(':')[0] | int %}
-        {% set e_time_m = e['time'].split(':')[1] | int %}
-        {% set entry_time = now().replace(hour=e_time_h,minute=e_time_m,second=0,microsecond=0) %}
-
-        {% if entry_time <= current_time %}
-          {% if result.r == none %}
-            {% set result.r = e %}
-          {% else %}
-            {% set e_time_h_old = result.r['time'].split(':')[0] | int %}
-            {% set e_time_m_old = result.r['time'].split(':')[1] | int %}
-            {% set entry_time_old = now().replace(hour=e_time_h_old,minute=e_time_m_old,second=0,microsecond=0) %}
-
-            {% if 'scheduler' not in e.keys() and 
-                  'days' not in result.r.keys() and 
-                  entry_time > entry_time_old %}
-              {% set result.r = e %}
-            {% endif %}
-
-          {% endif %}
+        {% set e_time = e['time'].replace(':','') | int %}
+        
+        {% if e_time <= current_time and
+              (result.entry == none or 
+                e_time >= result.entry['time'].replace(':','') | int) %}
+          {% set result.entry = e %}
         {% endif %}
       {% endif %}
-
     {% endfor %}
 
-    {{ result.r }}
+    {{ result.entry }}
 
   entry_time: >
     {% if (entry is defined) and entry  %}
