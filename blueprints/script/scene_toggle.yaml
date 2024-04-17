@@ -1,6 +1,6 @@
 blueprint:
-  name: Scene Toggle
-  description: >
+  name: ⏭️ Simple Scene Toggle
+  description: "
 
     ## Features
 
@@ -16,15 +16,17 @@ blueprint:
     **Help & FAQ**: [Simple Scene Toggle](https://community.home-assistant.io/t/simple-scene-toggle)
 
 
-    **Version**: 3.2
+    **Version**: 3.3
 
-    
+
     If you like my work and support feel free to support me.
 
 
     [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q5Q3QEH52)
 
-  source_url: https://github.com/panhans/homeassistant/blob/main/blueprints/script/scene_toggle.yaml
+    "
+
+  source_url: "https://github.com/panhans/homeassistant/blob/main/blueprints/script/scene_toggle.yaml"
   domain: script
 
   input:
@@ -112,14 +114,17 @@ sequence:
             
             {% set unknown_scenes = expand(all_scenes) | selectattr('state', 'eq', 'unknown') | map(attribute='entity_id') | list %}
             {% set scenes_sorted_by_activation = expand(all_scenes) | sort(attribute='state', reverse = true) | map(attribute='entity_id') | reject('in', unknown_scenes) | list %}
-            {% set last_activated_scene = scenes_sorted_by_activation[0] %}
-            {% set index_of_last_activated_scene = all_scenes.index(last_activated_scene) %}
-            {% set new_index = index_of_last_activated_scene + 1 %}
 
-            {% if new_index == all_scenes | count %}
-              {{ all_scenes[0] }}
+            {% if unknown_scenes | count > 0 %}
+              {{ unknown_scenes[0] }}
             {% else %}
+
+              {% set last_activated_scene = scenes_sorted_by_activation[0] %}
+              {% set index_of_last_activated_scene = all_scenes.index(last_activated_scene) %}
+              {% set new_index = index_of_last_activated_scene + 1 %}
+              {% set new_index = iif(new_index >= all_schenes | count, all_scenes | count, new_index) %}
               {{ all_scenes[new_index] }}
+
             {% endif %}
           {% endif %}
         {% else %}     
