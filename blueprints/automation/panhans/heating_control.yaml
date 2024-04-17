@@ -43,7 +43,7 @@ blueprint:
 
 
 
-    **Version**: 4.2.5
+    **Version**: 4.2.6
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -938,6 +938,7 @@ trigger_variables:
   input_mode_party: !input input_mode_party
   input_mode_guest: !input input_mode_guest
   input_force_max_temperature: !input input_force_max_temperature
+  input_hvac_mode: !input input_hvac_mode
 
   input_temperature_comfort: !input input_temperature_comfort
   input_temperature_minimum: !input input_temperature_minimum
@@ -1174,7 +1175,8 @@ trigger:
       {% if input_mode_outside_temperature != none %}
         {% set state = states(input_mode_outside_temperature) %}
         {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
-        {{ state | int <= input_mode_outside_temperature_threshold | int }}
+        {% set factor = iif(input_hvac_mode == 'cool', -1, 1) | int %}
+        {{ (state | int - input_mode_outside_temperature_threshold | int) * factor <= 0 }}
       {% endif %}
     for:
       seconds: 2
@@ -1185,7 +1187,8 @@ trigger:
       {% if input_mode_outside_temperature != none %}
         {% set state = states(input_mode_outside_temperature) %}
         {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
-        {{ state | int > input_mode_outside_temperature_threshold | int }}
+        {% set factor = iif(input_hvac_mode == 'cool', -1, 1) | int %}
+        {{ (state | int - input_mode_outside_temperature_threshold | int) * factor > 0 }}
       {% endif %}
     for:
       seconds: 2
@@ -1452,7 +1455,8 @@ variables:
     {% if input_mode_outside_temperature != none %}
       {% set state = states(input_mode_outside_temperature) %}
       {% set state = iif(is_number(state) == true, state, state_attr(input_mode_outside_temperature,'temperature'))%}
-      {{ state | int <= input_mode_outside_temperature_threshold | int }}
+      {% set factor = iif(input_hvac_mode == 'cool', -1, 1) | int %}
+      {{ (state | int - input_mode_outside_temperature_threshold | int) * factor <= 0 }}
     {% else %}
       {{ true }}
     {% endif %}
