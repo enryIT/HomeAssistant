@@ -43,7 +43,7 @@ blueprint:
 
 
 
-    **Version**: 4.2.7_dev_1
+    **Version**: 4.2.7_dev_2
 
     **Help & FAQ**: [Advanced Heating Control](https://community.home-assistant.io/t/advanced-heating-control)
 
@@ -1924,7 +1924,8 @@ variables:
       trigger.platform != none and
       mode != 'off' and
       'calibration' in trigger.id and
-      input_temperature_sensor != none
+      input_temperature_sensor != none and
+      is_number(states(input_temperature_sensor))
     }}
 
   # ------------------------------------------------------------------------------------
